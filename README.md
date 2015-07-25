@@ -6,6 +6,59 @@ Drupal composer installer plugin
 * Installs Drupal modules into {drupal-root}/sites/all/modules/{dir}.
 * Installs libraries into {drupal-root}/sites/all/libraries.
 
+## Usage
+
+To use this installer in your project build, in your composer.json add
+
+```
+  "repositories": [
+    {
+      "type": "git",
+      "url": "git@github.com:douggreen/drupal-composer-installer.git"
+    }
+  ],
+  "require": {
+    "drupal/composer-installer": "~1.0"
+  }
+```
+
+You'll also want to add a packageist as follows (that is, until drupal.org implements it's own):
+
+```
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "http://drupal-packagist.webflo.io/"
+    }
+  ],
+```
+
+Your somewhat complete composer.json might look like:
+
+```
+{
+  "name": "Example project",
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "http://drupal-packagist.webflo.io/"
+    },
+    {
+      "type": "git",
+      "url": "git@github.com:douggreen/drupal-composer-installer.git"
+    }
+  ],
+  "require": {
+    "composer/installers": "*",
+    "drupal/composer-installer": "~1.0",
+    "drupal/drupal": "~7.38"
+  },
+  "extra": {
+    "drupal-root": "docroot"
+  }
+}
+```
+
 ## Options
 
 ### drupal-root - the directory to install drupal into, defaults to 'core'
