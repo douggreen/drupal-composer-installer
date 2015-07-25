@@ -1,0 +1,13 @@
+{
+  "name": "drupal/composer-installer",
+  "type": "composer-plugin",
+  "autoload": {
+    "psr-0": {"Drupal\\Composer": "src/"}
+  },
+  "extra": {
+    "class": "Drupal\\Composer\\DrupalInstallerPlugin"
+  },
+  "require": {
+    "composer-plugin-api": "~1.0"
+  }
+}
