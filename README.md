@@ -5,6 +5,7 @@ Drupal composer installer plugin
 * Installs Drupal core into drupal-root.
 * Installs Drupal modules into {drupal-root}/sites/all/modules/{dir}.
 * Installs libraries into {drupal-root}/sites/all/libraries.
+* Saves and restores custom code around drupal/drupal installation.
 
 ## Usage
 
@@ -85,7 +86,7 @@ The value ```ckeditor/ckeditor``` is implied by default.
 ### drupal-modules - map of packages to directories.
 
 * drupal/* : contrib, by default all drupal modules are installed in {drupal-root}/sites/all/modules/contrib
-or {drupal-root}/sites/all/modules/custom. Additional directories can be specified 
+or {drupal-root}/sites/all/modules/custom. Additional directories can be specified.
 
 ```
   "extra": {
@@ -97,3 +98,18 @@ or {drupal-root}/sites/all/modules/custom. Additional directories can be specifi
 ```
 
 The value ```"drupal/*": "contrib"``` is implied by default but can be overridden.
+
+### drupal-custom - array of custom paths.
+
+This is array of custom code paths that should be saved before drupal/drupal is installed and restored after it is installed.
+
+```
+  "extra": {
+    "drupal-custom": [
+      "core/sites/all/themes/mytheme"
+    ],
+  },
+```
+
+The values ```sites/all/modules/custom``` and ```sites/all/themes/custom``` are implied by default and do not
+need to be listed.

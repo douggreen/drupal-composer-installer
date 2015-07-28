@@ -31,6 +31,8 @@ class DrupalInstaller extends LibraryInstaller
         );
 
         $this->drupalRoot = $extra['drupal-root'];
+
+        $this->cached = array();
     }
 
     /**
@@ -38,38 +40,48 @@ class DrupalInstaller extends LibraryInstaller
      */
     public function getPackageBasePath(PackageInterface $package)
     {
-      $packageName = strtolower($package->getName());
+        $packageName = strtolower($package->getName());
 
-      if ($packageName === 'drupal/drupal') {
-          return $this->drupalRoot;
-      }
+        if (isset($this->cached[$packageName])) {
+            return $this->cached[$packageName];
+        }
 
-      list($vendor, $name) = explode('/', $packageName);
+        if ($packageName === 'drupal/drupal') {
+            $path = $this->drupalRoot;
+        }
+        else {
+            list($vendor, $name) = explode('/', $packageName);
 
-      $path = '';
-      if ($package->getType() === 'drupal-module') {
-          $path = $this->drupalRoot . '/sites/all/modules/';
-          if (isset($this->drupalModules[$packageName])) {
-              $path .= $this->drupalModules[$packageName];
-          }
-          elseif (isset($this->drupalModules["$vendor/*"])) {
-              $path .= $this->drupalModules["$vendor/*"];
-          }
-          else {
-              $path .= "custom";
-          }
-      }
-      if (isset($this->drupalLibraries[$packageName]) || isset($this->drupalLibraries["$vendor/*"])) {
-          $path = $this->drupalRoot . '/sites/all/libraries';
-      }
-      if ($path) {
-          $path .= '/' . $name;
-      }
-      else {
-          $path = parent::getPackageBasePath($package);
-      }
+            $path = '';
+            if ($package->getType() === 'drupal-module') {
+                $path = $this->drupalRoot . '/sites/all/modules/';
+                if (isset($this->drupalModules[$packageName])) {
+                    $path .= $this->drupalModules[$packageName];
+                }
+                elseif (isset($this->drupalModules["$vendor/*"])) {
+                    $path .= $this->drupalModules["$vendor/*"];
+                }
+                else {
+                    $path .= "custom";
+                }
+            }
+            if (isset($this->drupalLibraries[$packageName]) || isset($this->drupalLibraries["$vendor/*"])) {
+                $path = $this->drupalRoot . '/sites/all/libraries';
+            }
+            if ($path) {
+                $path .= '/' . $name;
+            }
+        }
+        if ($path) {
+            $this->io->write("<info>Installing $packageName in $path.</info>");
+        }
+        else {
+            $path = parent::getPackageBasePath($package);
+        }
 
-      return $path;
+        $this->cached[$packageName] = $path;
+
+        return $path;
     }
 
     /**
