@@ -99,6 +99,12 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     function getPackageName(PackageEvent $event) {
-        return $event->getOperation()->getPackage()->getName();
+        $operation = $event->getOperation();
+        foreach (array('getPackage', 'getTargetPackage') as $method) {
+            if (method_exists($operation, $method)) {
+                return $operation->$method()->getName();
+            }
+        }
+        return NULL;
     }
 }
