@@ -70,13 +70,15 @@ Your somewhat complete composer.json might look like:
   },
 ```
 
-### drupal-libraries - array of packages to install into {drupal-root}/sites/all/libraries.
+### drupal-libraries - map of packages to install into {drupal-root}/sites/all/libraries.
+
+The package is the key name. Any value specifies a directory name under sites/all/libraries.
 
 ```
   "extra": {
     "drupal-libraries": {
-      "harvesthq/chosen",
-      "jquery/*"
+      "harvesthq/chosen" : "",
+      "desandro/imagesloaded" : "jquery-imagesloaded",
     },
   },
 ```
@@ -86,7 +88,7 @@ The value ```ckeditor/ckeditor``` is implied by default.
 ### drupal-modules - map of packages to directories.
 
 * drupal/* : contrib, by default all drupal modules are installed in {drupal-root}/sites/all/modules/contrib
-or {drupal-root}/sites/all/modules/custom. Additional directories can be specified.
+or {drupal-root}/sites/all/modules/project. Additional directories can be specified.
 
 ```
   "extra": {

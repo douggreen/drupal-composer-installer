@@ -89,6 +89,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         foreach ($this->tmp as $path => $tmpfile) {
             $io->write("<info>Restore $path from $tmpfile</info>");
+            if (file_exists($path) && is_dir($path)) {
+              $file->removeDirectory($path);
+            }
             $file->rename($tmpfile, $path);
         }
 

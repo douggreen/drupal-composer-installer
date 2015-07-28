@@ -20,14 +20,12 @@ class DrupalInstaller extends LibraryInstaller
             'drupal-root' => 'core',
         );
 
-        $default_libraries = array(
-            'ckeditor/ckeditor',
+        $this->drupalLibraries = $extra['drupal-libraries'] + array(
+            'ckeditor/ckeditor' => "",
         );
-        $libraries = array_map('strtolower', array_unique(array_merge($default_libraries, $extra['drupal-libraries'])));
-        $this->drupalLibraries = array_combine($libraries, $libraries);
 
         $this->drupalModules = $extra['drupal-modules'] + array(
-          'drupal/*' => 'contrib',
+            'drupal/*' => 'contrib',
         );
 
         $this->drupalRoot = $extra['drupal-root'];
@@ -54,22 +52,21 @@ class DrupalInstaller extends LibraryInstaller
 
             $path = '';
             if ($package->getType() === 'drupal-module') {
-                $path = $this->drupalRoot . '/sites/all/modules/';
-                if (isset($this->drupalModules[$packageName])) {
-                    $path .= $this->drupalModules[$packageName];
+                $subdir = "project";
+                foreach (array($packageName, "$vendor/*") as $key) {
+                    if (isset($this->drupalModules[$key])) {
+                        $subdir = $this->drupalModules[$key];
+                    }
                 }
-                elseif (isset($this->drupalModules["$vendor/*"])) {
-                    $path .= $this->drupalModules["$vendor/*"];
-                }
-                else {
-                    $path .= "custom";
-                }
+                $path = "$this->drupalRoot/sites/all/modules/$subdir/$name";
             }
-            if (isset($this->drupalLibraries[$packageName]) || isset($this->drupalLibraries["$vendor/*"])) {
-                $path = $this->drupalRoot . '/sites/all/libraries';
-            }
-            if ($path) {
-                $path .= '/' . $name;
+            else {
+                foreach (array($packageName, "$vendor/*") as $key) {
+                    if (isset($this->drupalLibraries[$key])) {
+                        $path = $this->drupalRoot . '/sites/all/libraries/';
+                        $path .= empty($this->drupalLibraries[$key]) ? $name : $this->drupalLibraries[$key];
+                    }
+                }
             }
         }
         if ($path) {
