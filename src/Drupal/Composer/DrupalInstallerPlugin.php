@@ -21,10 +21,14 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $extra = $composer->getPackage()->getExtra();
         $extra += array(
             'drupal-custom' => array(),
+            'drupal-root' => 'core',
         );
+
+        $this->drupalRoot = $extra['drupal-root'];
+
         $this->drupalCustom = array_unique(array_merge(array(
-            'sites/all/modules/custom',
-            'sites/all/themes/custom',
+            $this->drupalRoot . '/sites/all/modules/custom',
+            $this->drupalRoot . '/sites/all/themes/custom',
         ), $extra['drupal-custom']));
 
         $this->tmp = array();
