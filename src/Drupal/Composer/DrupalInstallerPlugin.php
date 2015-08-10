@@ -5,6 +5,7 @@ namespace Drupal\Composer;
 use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\IO\IOInterface;
+use Composer\Package\PackageInterface;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\PackageEvent;
@@ -15,8 +16,8 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 {
     public function activate(Composer $composer, IOInterface $io)
     {
-        $installer = new DrupalInstaller($io, $composer);
-        $composer->getInstallationManager()->addInstaller($installer);
+        $this->installer = new DrupalInstaller($io, $composer);
+        $composer->getInstallationManager()->addInstaller($this->installer);
 
         $extra = $composer->getPackage()->getExtra();
         $extra += array(
@@ -46,20 +47,22 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     function before(PackageEvent $event) {
         $io = $event->getIO();
 
-        if ($this->getPackageName($event, $io) !== 'drupal/drupal') {
-            return;
+        if ($this->getPackageName($event, $io) === 'drupal/drupal') {
+            $this->beforeDrupalSaveCustom($event, $io);
         }
+    }
 
+    protected function beforeDrupalSaveCustom(PackageEvent $event, IOInterface $io) {
         // Change permissions for a better outcome when deleting existing sites,
         // since Drupal changes the permissions on these directories.
         $sitesDir = $this->drupalRoot . '/sites';
-        $sites = scandir($sitesDir);
-        foreach ($sites as $site) {
-            if ($site != '.' && $site != '..') {
-                $siteDir = "$sitesDir/$site";
-                if (is_dir($siteDir)) {
-                    @chmod($siteDir, 0755);
-                    @chmod("$siteDir/settings.php", 0644);
+        $scanFiles = scandir($sitesDir);
+        foreach ($scanFiles as $partialPath) {
+            if ($partialPath != '.' && $partialPath != '..') {
+                $filePath = "$sitesDir/$partialPath";
+                if (is_dir($filePath)) {
+                    @chmod($filePath, 0755);
+                    @chmod("$filePath/settings.php", 0644);
                 }
             }
         }
@@ -97,12 +100,24 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     function after(PackageEvent $event) {
-        $io = $event->getIO();
-
-        if ($this->getPackageName($event, $io) !== 'drupal/drupal' || !isset($this->tmpdir)) {
+        if (!isset($this->tmpdir)) {
             return;
         }
 
+        $io = $event->getIO();
+        $package = $this->getPackage($event, $io);
+        $packageName = $this->getPackageInterfaceName($package);
+        $packageType = $package->getType();
+
+        if ($packageName === 'drupal/drupal') {
+            $this->afterDrupalRestoreCustom($event, $io);
+        }
+        elseif ($packageType === 'drupal-module' || $packageType === 'drupal_theme') {
+            $this->afterDrupalRewriteInfo($event, $io, $package);
+        }
+    }
+
+    protected function afterDrupalRestoreCustom(PackageEvent $event, IOInterface $io) {
         $file = new FileSystem();
 
         foreach ($this->tmp as $path => $tmpfile) {
@@ -116,15 +131,47 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $file->removeDirectory($this->tmpdir);
     }
 
-    function getPackageName(PackageEvent $event, IOInterface $io) {
-        $name = 'none/none';
+    protected function afterDrupalRewriteInfo(PackageEvent $event, IOInterface $io, PackageInterface $package) {
+        $packageVersion = $package->getVersion();
+        $packageName = $this->getPackageInterfaceName($package);
+        list($vendor, $project) = explode('/', $packageName);
+
+        $packagePath = $this->installer->getPackageBasePath($package);
+        $scanFiles = scandir($packagePath);
+        foreach ($scanFiles as $partialPath) {
+            if (substr($partialPath, -5) === '.info') {
+                $filePath = "$packagePath/$partialPath";
+                $info = file($filePath);
+                if (!preg_grep('/version\s*=/', $info)) {
+                    $moreInfo = "\n"
+                        . "; Information added by drupal-composer-installer packaging script on " . date('Y-m-d') . "\n"
+                        . "version = \"$packageVersion\"\n"
+                        . "project = \"$project\"\n"
+                        . "datetimestamp = \"" . time() . "\"\n";
+                    file_put_contents($filePath, $moreInfo, FILE_APPEND);
+
+                    $io->write("<info>Rewrite $filePath project=$project, version=$packageVersion</info>");
+                }
+            }
+        }
+    }
+
+    protected function getPackage(PackageEvent $event, IOInterface $io) {
         $operation = $event->getOperation();
         foreach (array('getPackage', 'getTargetPackage') as $method) {
             if (method_exists($operation, $method)) {
-                $name = $operation->$method()->getName();
-                break;
+                return $operation->$method();
             }
         }
-        return $name;
+        return NULL;
+    }
+
+    protected function getPackageName(PackageEvent $event, IOInterface $io) {
+        $package = $this->getPackage($event, $io);
+        return $this->getPackageInterfaceName($package);
+    }
+
+    protected function getPackageInterfaceName(PackageInterface $package) {
+        return $package ? $package->getName() : 'none/none';
     }
 }
