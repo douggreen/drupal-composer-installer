@@ -44,11 +44,11 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     function before(PackageEvent $event) {
-        if ($this->getPackageName($event) !== 'drupal/drupal') {
+        $io = $event->getIO();
+
+        if ($this->getPackageName($event, $io) !== 'drupal/drupal') {
             return;
         }
-
-        $io = $event->getIO();
 
         $file = new FileSystem();
 
@@ -83,11 +83,11 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     function after(PackageEvent $event) {
-        if ($this->getPackageName($event) !== 'drupal/drupal' || !isset($this->tmpdir)) {
+        $io = $event->getIO();
+
+        if ($this->getPackageName($event, $io) !== 'drupal/drupal' || !isset($this->tmpdir)) {
             return;
         }
-
-        $io = $event->getIO();
 
         $file = new FileSystem();
 
@@ -102,7 +102,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $file->removeDirectory($this->tmpdir);
     }
 
-    function getPackageName(PackageEvent $event) {
+    function getPackageName(PackageEvent $event, IOInterface $io) {
         $name = 'none/none';
         $operation = $event->getOperation();
         foreach (array('getPackage', 'getTargetPackage') as $method) {
