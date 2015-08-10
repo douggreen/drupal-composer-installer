@@ -50,6 +50,20 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             return;
         }
 
+        // Change permissions for a better outcome when deleting existing sites,
+        // since Drupal changes the permissions on these directories.
+        $sitesDir = $this->drupalRoot . '/sites';
+        $sites = scandir($sitesDir);
+        foreach ($sites as $site) {
+            if ($site != '.' && $site != '..') {
+                $siteDir = "$sitesDir/$site";
+                if (is_dir($siteDir)) {
+                    @chmod($siteDir, 0755);
+                    @chmod("$siteDir/settings.php", 0644);
+                }
+            }
+        }
+
         $file = new FileSystem();
 
         foreach ($this->drupalCustom as $path) {
