@@ -137,22 +137,39 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         list($vendor, $project) = explode('/', $packageName);
 
         $packagePath = $this->installer->getPackageBasePath($package);
-        $scanFiles = scandir($packagePath);
-        foreach ($scanFiles as $partialPath) {
-            if (substr($partialPath, -5) === '.info') {
-                $filePath = "$packagePath/$partialPath";
-                $info = file($filePath);
-                if (!preg_grep('/version\s*=/', $info)) {
-                    $moreInfo = "\n"
-                        . "; Information added by drupal-composer-installer packaging script on " . date('Y-m-d') . "\n"
-                        . "version = \"$packageVersion\"\n"
-                        . "project = \"$project\"\n"
-                        . "datetimestamp = \"" . time() . "\"\n";
-                    file_put_contents($filePath, $moreInfo, FILE_APPEND);
 
-                    $io->write("<info>Rewrite $filePath project=$project, version=$packageVersion</info>");
-                }
+        $moreInfo = "\n"
+            . "; Information added by drupal-composer-installer packaging script on " . date('Y-m-d') . "\n"
+            . "version = \"$packageVersion\"\n"
+            . "project = \"$project\"\n"
+            . "datetimestamp = \"" . time() . "\"\n";
+        $this->rewriteDirInfo($event, $io, $packagePath, $moreInfo);
+    }
+
+    protected function rewriteDirInfo(PackageEvent $event, IOInterface $io, $dirPath, $moreInfo) {
+        $scanFiles = scandir($dirPath);
+        foreach ($scanFiles as $partialPath) {
+            if ($partialPath === '.' || $partialPath === '..') {
+                continue;
             }
+
+            $filePath = "$dirPath/$partialPath";
+
+            if (is_dir($filePath)) {
+                $this->rewriteDirInfo($event, $io, $filePath, $moreInfo);
+            }
+            elseif (substr($partialPath, -5) === '.info') {
+                $this->rewriteFileInfo($event, $io, $filePath, $moreInfo);
+            }
+        }
+    }
+
+    protected function rewriteFileInfo(PackageEvent $event, IOInterface $io, $filePath, $moreInfo) {
+        $info = file($filePath);
+        if (!preg_grep('/version\s*=/', $info)) {
+            file_put_contents($filePath, $moreInfo, FILE_APPEND);
+
+            $io->write("<info>Rewrite $filePath</info>");
         }
     }
 
