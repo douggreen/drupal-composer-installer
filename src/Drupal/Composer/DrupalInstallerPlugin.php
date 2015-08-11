@@ -112,7 +112,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         if ($packageName === 'drupal/drupal') {
             $this->afterDrupalRestoreCustom($event, $io);
         }
-        elseif ($packageType === 'drupal-module' || $packageType === 'drupal_theme') {
+        elseif ($packageType === 'drupal-module' || $packageType === 'drupal-theme') {
             $this->afterDrupalRewriteInfo($event, $io, $package);
         }
     }
