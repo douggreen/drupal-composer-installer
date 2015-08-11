@@ -32,6 +32,8 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $this->drupalRoot . '/sites/all/themes/custom',
         ), $extra['drupal-custom']));
 
+        $this->noGitDir = !empty($extra['no-git-dir']);
+
         $this->tmp = array();
     }
 
@@ -100,31 +102,33 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     function after(PackageEvent $event) {
-        if (!isset($this->tmpdir)) {
-            return;
-        }
-
         $io = $event->getIO();
         $package = $this->getPackage($event, $io);
         $packageName = $this->getPackageInterfaceName($package);
         $packageType = $package->getType();
+        list($packageDrupal) = explode('-', $packageType);
 
         if ($packageName === 'drupal/drupal') {
             $this->afterDrupalRestoreCustom($event, $io);
         }
-        elseif ($packageType === 'drupal-module' || $packageType === 'drupal-theme') {
+        elseif ($packageDrupal === 'drupal') {
             $this->afterDrupalRewriteInfo($event, $io, $package);
+        }
+        if ($packageDrupal === 'drupal' && $this->noGitDir) {
+            $this->afterDrupalRemoveGitDir($event, $io, $package);
         }
     }
 
     protected function afterDrupalRestoreCustom(PackageEvent $event, IOInterface $io) {
+        if (!isset($this->tmpdir)) {
+            return;
+        }
+
         $file = new FileSystem();
 
         foreach ($this->tmp as $path => $tmpfile) {
             $io->write("<info>Restore $path from $tmpfile</info>");
-            if (file_exists($path) && is_dir($path)) {
-              $file->removeDirectory($path);
-            }
+            $file->removeDirectory($path);
             $file->rename($tmpfile, $path);
         }
 
@@ -171,6 +175,16 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
             $io->write("<info>Rewrite $filePath</info>");
         }
+    }
+
+    protected function afterDrupalRemoveGitDir(PackageEvent $event, IOInterface $io, PackageInterface $package) {
+        $packagePath = $this->installer->getPackageBasePath($package);
+        $gitPath = "$packagePath/.git";
+
+        $file = new FileSystem();
+        $file->removeDirectory($gitPath);
+
+        $io->write("<info>Removed $packagePath/.git</info>");
     }
 
     protected function getPackage(PackageEvent $event, IOInterface $io) {

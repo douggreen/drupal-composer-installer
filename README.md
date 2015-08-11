@@ -115,3 +115,8 @@ This is array of custom code paths that should be saved before drupal/drupal is 
 
 The values ```sites/all/modules/custom``` and ```sites/all/themes/custom``` are implied by default and do not
 need to be listed.
+
+### no-git-dir - optional
+
+If set, any .git directory that is downloaded from "git" "repositories" is removed.
+Set this to avoid git subprojects.
