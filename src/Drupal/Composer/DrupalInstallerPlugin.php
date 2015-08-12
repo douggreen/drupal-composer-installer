@@ -150,7 +150,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             . "; Information added by drupal-composer-installer packaging script on " . date('Y-m-d') . "\n"
             . "version = \"$packageVersion\"\n"
             . "project = \"$project\"\n"
-            . "datetimestamp = \"" . time() . "\"\n";
+            . "datestamp = \"" . time() . "\"\n";
         $this->rewriteDirInfo($event, $io, $packagePath, $moreInfo);
     }
 
