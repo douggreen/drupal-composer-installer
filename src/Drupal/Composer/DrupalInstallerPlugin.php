@@ -58,6 +58,10 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         // Change permissions for a better outcome when deleting existing sites,
         // since Drupal changes the permissions on these directories.
         $sitesDir = $this->drupalRoot . '/sites';
+        if (!is_dir($sitesDir)) {
+            $io->write("<error>Missing $sitesDir->tmpdir</error>");
+            return;
+        }
         $scanFiles = scandir($sitesDir);
         foreach ($scanFiles as $partialPath) {
             if ($partialPath != '.' && $partialPath != '..') {
