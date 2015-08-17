@@ -35,6 +35,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $this->noGitDir = !empty($extra['no-git-dir']);
 
         $this->tmp = array();
+        $this->info = array();
     }
 
     public static function getSubscribedEvents() {
@@ -49,8 +50,17 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     function before(PackageEvent $event) {
         $io = $event->getIO();
 
-        if ($this->getPackageName($event, $io) === 'drupal/drupal') {
+        $package = $this->getPackage($event, $io);
+        $packageName = $package->getName();
+        $packageType = $package->getType();
+        list($packageDrupal) = explode('-', $packageType);
+
+        if ($packageName === 'drupal/drupal') {
             $this->beforeDrupalSaveCustom($event, $io);
+            $this->beforeDrupalRewriteInfo($event, $io);
+        }
+        elseif ($packageDrupal === 'drupal') {
+            $this->beforeDrupalRewriteInfo($event, $io);
         }
     }
 
@@ -105,10 +115,65 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
     }
 
+    protected function beforeDrupalRewriteInfo(PackageEvent $event, IOInterface $io) {
+        $package = $this->getPackage($event, $io);
+        $packagePath = $this->installer->getPackageBasePath($package);
+        $this->readDirVersionInfo($event, $io, $packagePath);
+    }
+
+    protected function readDirVersionInfo(PackageEvent $event, IOInterface $io, $dirPath) {
+        if (!is_dir($dirPath)) {
+            return;
+        }
+        $scanFiles = @scandir($dirPath);
+        foreach ($scanFiles as $partialPath) {
+            if ($partialPath === '.' || $partialPath === '..') {
+                continue;
+            }
+
+            $filePath = "$dirPath/$partialPath";
+
+            if (is_dir($filePath)) {
+                $this->readDirVersionInfo($event, $io, $filePath);
+            }
+            elseif (substr($partialPath, -5) === '.info') {
+                $this->info[$filePath] = $this->getFileDrupalInfo($event, $io, $filePath);
+            }
+        }
+    }
+
+    function getFileDrupalInfo(PackageEvent $event, IOInterface $io, $filePath) {
+        $info = array();
+        $contents = @file($filePath);
+        if ($contents) {
+            foreach ($contents as $line) {
+                if (preg_match('/^\s*(\w+)\s*=\s*"?([^"\n]*)"?/', $line, $matches)) {
+                    $key = $matches[1];
+                    $value = $matches[2];
+                    $info[$key] = $value;
+                }
+                elseif (preg_match('/^;.*on (\d\d\d\d-\d\d-\d\d)/', $line, $matches)) {
+                    $info['date'] = $matches[1];
+                }
+            }
+        }
+        return $info ? $info : NULL;
+    }
+
+    function getFileVersionInfo(PackageEvent $event, IOInterface $io, $filePath) {
+        $contents = @file_get_contents($filePath);
+        $regex = '/\s+version\s*=\s*"?([^"\s]*)"?/';
+        if ($contents && preg_match_all($regex, $contents, $matches)) {
+            return end($matches[1]);
+        }
+        return NULL;
+    }
+
     function after(PackageEvent $event) {
         $io = $event->getIO();
+
         $package = $this->getPackage($event, $io);
-        $packageName = $this->getPackageInterfaceName($package);
+        $packageName = $package->getName();
         $packageType = $package->getType();
         list($packageDrupal) = explode('-', $packageType);
 
@@ -141,20 +206,21 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
     protected function afterDrupalRewriteInfo(PackageEvent $event, IOInterface $io, PackageInterface $package) {
         $packageVersion = $package->getVersion();
-        $packageName = $this->getPackageInterfaceName($package);
+        $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
 
         $packagePath = $this->installer->getPackageBasePath($package);
 
-        $moreInfo = "\n"
-            . "; Information added by drupal-composer-installer packaging script on " . date('Y-m-d') . "\n"
-            . "version = \"$packageVersion\"\n"
-            . "project = \"$project\"\n"
-            . "datestamp = \"" . time() . "\"\n";
-        $this->rewriteDirInfo($event, $io, $packagePath, $moreInfo);
+        $info = array(
+            'project' => $project,
+            'version' => $packageVersion,
+            'date' => date('Y-m-d'),
+            'datestamp' => time(),
+        );
+        $this->rewriteDirInfo($event, $io, $packagePath, $info);
     }
 
-    protected function rewriteDirInfo(PackageEvent $event, IOInterface $io, $dirPath, $moreInfo) {
+    protected function rewriteDirInfo(PackageEvent $event, IOInterface $io, $dirPath, $info) {
         $scanFiles = scandir($dirPath);
         foreach ($scanFiles as $partialPath) {
             if ($partialPath === '.' || $partialPath === '..') {
@@ -164,20 +230,33 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $filePath = "$dirPath/$partialPath";
 
             if (is_dir($filePath)) {
-                $this->rewriteDirInfo($event, $io, $filePath, $moreInfo);
+                $this->rewriteDirInfo($event, $io, $filePath, $info);
             }
             elseif (substr($partialPath, -5) === '.info') {
-                $this->rewriteFileInfo($event, $io, $filePath, $moreInfo);
+                $this->rewriteFileInfo($event, $io, $filePath, $info);
             }
         }
     }
 
-    protected function rewriteFileInfo(PackageEvent $event, IOInterface $io, $filePath, $moreInfo) {
-        $info = file($filePath);
-        if (!preg_grep('/version\s*=/', $info)) {
+    protected function rewriteFileInfo(PackageEvent $event, IOInterface $io, $filePath, $info) {
+        $version = $this->getFileVersionInfo($event, $io, $filePath);
+        if (!$version) {
+            if (strpos($info['version'], 'dev') === FALSE && isset($this->info[$filePath]['version']) && $this->info[$filePath]['version'] === $info['version']) {
+                $info = $this->info[$filePath] + $info;
+            }
+
+            $moreInfo = "\n"
+                . "; Information added by drupal-composer-installer packaging script on $info[date]\n"
+                . "version = \"$info[version]\"\n";
+            if (isset($info['project'])) {
+                $moreInfo .= "project = \"$info[project]\"\n";
+            }
+            if (isset($info['datestamp'])) {
+                $moreInfo .= "datestamp = \"$info[datestamp]\"\n";
+            }
             file_put_contents($filePath, $moreInfo, FILE_APPEND);
 
-            $io->write("<info>Rewrite $filePath</info>");
+            $io->write("<info>Rewrite $filePath $info[version]</info>");
         }
     }
 
@@ -202,11 +281,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     protected function getPackageName(PackageEvent $event, IOInterface $io) {
-        $package = $this->getPackage($event, $io);
-        return $this->getPackageInterfaceName($package);
-    }
-
-    protected function getPackageInterfaceName(PackageInterface $package) {
-        return $package ? $package->getName() : 'none/none';
+        return $this->getPackage($event, $io)->getName();
     }
 }
