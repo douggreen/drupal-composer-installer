@@ -30,7 +30,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $this->drupalCustom = $extra['drupal-custom'];
         foreach (array('modules', 'themes') as $subdir) {
             $path = $this->drupalRoot . '/sites/all/' . $subdir . '/custom';
-            if ($this->isUniqueDir($path, $this->drupalCustom)) {
+            if ($this->isUniqueDir($io, $path, $this->drupalCustom)) {
                 $this->drupalCustom[] = $path;
             }
         }
@@ -41,13 +41,17 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $this->info = array();
     }
 
-    protected function isUniqueDir($path, $dirs) {
+    protected function isUniqueDir(IOInterface $io, $path, $dirs) {
+        $io->write("<info>path=$path, dirs=" . print_r($dirs, 1) . "</info>");
         for ($parts = explode('/', $path); $parts; array_pop($parts)) {
             $path = implode('/', $parts);
+            $io->write("<info>Checking for $path</info>");
             if (in_array($path, $dirs)) {
+                $io->write("<info>Checking for $path -- FOUND</info>");
                 return FALSE;
             }
         }
+        $io->write("<info>NOT FOUND</info>");
         return TRUE;
     }
 
