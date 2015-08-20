@@ -27,15 +27,28 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $this->drupalRoot = $extra['drupal-root'];
 
-        $this->drupalCustom = array_unique(array_merge(array(
-            $this->drupalRoot . '/sites/all/modules/custom',
-            $this->drupalRoot . '/sites/all/themes/custom',
-        ), $extra['drupal-custom']));
+        $this->drupalCustom = $extra['drupal-custom'];
+        foreach (array('modules', 'themes') as $subdir) {
+            $path = $this->drupalRoot . '/sites/all/' . $subdir . '/custom';
+            if ($this->isUniqueDir($path, $this->drupalCustom)) {
+                $this->drupalCustom[] = $path;
+            }
+        }
 
         $this->noGitDir = !empty($extra['no-git-dir']);
 
         $this->tmp = array();
         $this->info = array();
+    }
+
+    protected function isUniqueDir($path, $dirs) {
+        for ($parts = explode('/', $path); $parts; array_pop($parts)) {
+            $path = implode('/', $parts);
+            if (in_array($path, $dirs)) {
+                return FALSE;
+            }
+        }
+        return TRUE;
     }
 
     public static function getSubscribedEvents() {
