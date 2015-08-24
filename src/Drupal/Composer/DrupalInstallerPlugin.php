@@ -80,6 +80,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         elseif ($packageDrupal === 'drupal') {
             $this->beforeDrupalRewriteInfo($event, $io);
         }
+        if ($packageDrupal === 'drupal' && $this->noGitDir) {
+            $this->beforeDrupalRemoveGitDir($event, $io, $package);
+        }
     }
 
     protected function beforeDrupalSaveCustom(PackageEvent $event, IOInterface $io) {
@@ -278,14 +281,31 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
     }
 
+    protected function beforeDrupalRemoveGitDir(PackageEvent $event, IOInterface $io, PackageInterface $package) {
+        $packagePath = $this->installer->getPackageBasePath($package);
+        $gitPath = "$packagePath/.git";
+        $backupPath = "$packagePath/.git-drupal";
+
+        if (!file_exists($gitPath) && file_exists($backupPath)) {
+            $file = new FileSystem();
+            $file->rename($backupPath, $gitPath);
+
+            $io->write("Restored <info>$gitPath</info> from <info>$backupPath</info>.");
+        }
+    }
+
     protected function afterDrupalRemoveGitDir(PackageEvent $event, IOInterface $io, PackageInterface $package) {
         $packagePath = $this->installer->getPackageBasePath($package);
         $gitPath = "$packagePath/.git";
+        $backupPath = "$packagePath/.git-drupal";
 
-        $file = new FileSystem();
-        $file->removeDirectory($gitPath);
+        if (file_exists($gitPath)) {
+            $file = new FileSystem();
+            $file->removeDirectory($backupPath);
+            $file->rename($gitPath, $backupPath);
 
-        $io->write("<info>Removed $packagePath/.git</info>");
+            $io->write("Removed <info>$gitPath</info> and stored as <info>$backupPath</info>.");
+        }
     }
 
     protected function getPackage(PackageEvent $event, IOInterface $io) {
