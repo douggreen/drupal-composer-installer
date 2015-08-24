@@ -11,9 +11,41 @@ use Composer\Script\Event;
 use Composer\Script\PackageEvent;
 use Composer\Installer\PackageEvents;
 use Composer\Util\FileSystem;
+use Composer\Util\ProcessExecutor;
+use Symfony\Component\Process\Process;
+
+// Optionally integrate with composer-patches.
+use cweagans\Composer\PatchEvent;
+use cweagans\Composer\PatchEvents;
 
 class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 {
+    /**
+     * Optionally listen to post-patch-apply events.
+     */
+    const POST_PATCH_APPLY = 'post-patch-apply';
+
+    /**
+     * @var Composer $composer
+     */
+    protected $composer;
+    /**
+     * @var IOInterface $io
+     */
+    protected $io;
+    /**
+     * @var ProcessExecutor $executor
+     */
+    protected $executor;
+    /**
+     * @var bool $useGit
+     */
+    protected $useGit;
+    /**
+     * @var string $gitCommitMessagePrefix
+     */
+    protected $gitCommitMessagePrefix;
+
     public function activate(Composer $composer, IOInterface $io)
     {
         $this->installer = new DrupalInstaller($io, $composer);
@@ -39,6 +71,13 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $this->tmp = array();
         $this->info = array();
+
+        $this->composer = $composer;
+        $this->io = $io;
+        $this->executor = new ProcessExecutor($this->io);
+
+        $this->useGit = getenv('COMPOSER_PATCHES_USE_GIT') == '1';
+        $this->gitCommitMessagePrefix = getenv('COMPOSER_PATCHES_GIT_COMMIT_MESSAGE_PREFIX');
     }
 
     protected function isUniqueDir(IOInterface $io, $path, $dirs) {
@@ -62,6 +101,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             // Use a higher priority than composer-patches.
             PackageEvents::POST_PACKAGE_INSTALL => array('after', 100),
             PackageEvents::POST_PACKAGE_UPDATE => array('after', 100),
+            self::POST_PATCH_APPLY => 'afterPatch',
         );
     }
 
@@ -207,6 +247,14 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         if ($packageDrupal === 'drupal' && $this->noGitDir) {
             $this->afterDrupalRemoveGitDir($event, $io, $package);
         }
+
+        // This needs to come after the noGitDir for maximum effectiveness.
+        if ($packageDrupal === 'drupal' && $this->useGit) {
+            $packagePath = $this->installer->getPackageBasePath($package);
+            // Commit the package.
+            $this->io->write('  - Committing <info>' . $packageName . '</info> with version <info>' . $package->getVersion(). '</info> to GIT.');
+            $this->executeCommand('cd %s && git add --all . && git commit . -m "' . $this->gitCommitMessagePrefix . 'Update package %s to version %s"', $packagePath, $packageName, $package->getVersion());
+        }
     }
 
     protected function afterDrupalRestoreCustom(PackageEvent $event, IOInterface $io) {
@@ -308,6 +356,26 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
     }
 
+    public function afterPatch(PatchEvent $event) {
+        $package = $event->getPackage();
+        $packageName = $package->getName();
+        $packageType = $package->getType();
+        list($packageDrupal) = explode('-', $packageType);
+
+        if ($packageDrupal === 'drupal' && $this->useGit) {
+            $packagePath = $this->installer->getPackageBasePath($package);
+
+            $url = $event->getUrl();
+            $description = $event->getDescription();
+
+            // Commit the package.
+            $this->io->write('  - Committing patch <info>' . $url . '</info> (<comment>' . $description . '</comment>) for package <info>' . $packageName . '</info> to GIT.');
+            $this->executeCommand('cd %s && git add --all . && git commit . -m "' . $this->gitCommitMessagePrefix . 'Applied patch %s (%s) for %s."', $packagePath, $url, $description, $packageName);
+        }
+    }
+
+
+
     protected function getPackage(PackageEvent $event, IOInterface $io) {
         $operation = $event->getOperation();
         foreach (array('getPackage', 'getTargetPackage') as $method) {
@@ -321,4 +389,37 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     protected function getPackageName(PackageEvent $event, IOInterface $io) {
         return $this->getPackage($event, $io)->getName();
     }
+
+  /**
+   * Executes a shell command with escaping.
+   *
+   * @param string $cmd
+   * @return bool
+   */
+  protected function executeCommand($cmd) {
+    // Shell-escape all arguments except the command.
+    $args = func_get_args();
+    foreach ($args as $index => $arg) {
+      if ($index !== 0) {
+        $args[$index] = escapeshellarg($arg);
+      }
+    }
+    // And replace the arguments.
+    $command = call_user_func_array('sprintf', $args);
+    $output = '';
+    if ($this->io->isVerbose()) {
+      $this->io->write('<comment>' . $command . '</comment>');
+      $io = $this->io;
+      $output = function ($type, $data) use ($io) {
+        if ($type == Process::ERR) {
+          $io->write('<error>' . $data . '</error>');
+        }
+        else {
+          $io->write('<comment>' . $data . '</comment>');
+        }
+      };
+    }
+    return ($this->executor->execute($command, $output) == 0);
+  }
+
 }
