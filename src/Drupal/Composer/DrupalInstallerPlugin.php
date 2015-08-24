@@ -59,8 +59,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         return array(
             PackageEvents::PRE_PACKAGE_INSTALL => 'before',
             PackageEvents::PRE_PACKAGE_UPDATE => 'before',
-            PackageEvents::POST_PACKAGE_INSTALL => 'after',
-            PackageEvents::POST_PACKAGE_UPDATE => 'after',
+            // Use a higher priority than composer-patches.
+            PackageEvents::POST_PACKAGE_INSTALL => array('after', 100),
+            PackageEvents::POST_PACKAGE_UPDATE => array('after', 100),
         );
     }
 
