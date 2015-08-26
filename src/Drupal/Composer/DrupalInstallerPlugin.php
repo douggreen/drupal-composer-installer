@@ -297,7 +297,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $branchName = $this->getBranchName($package);
         $this->io->write('  - Pushing <info>' . $branchName . '</info> to <info>' . $this->git['remote'] . '</info> to GIT.');
-        $this->executeCommand('git push %s %s', $this->git['remote'], $branchName);
+        $this->executeCommand('git push %s %s --force', $this->git['remote'], $branchName);
     }
 
     protected function afterDrupalRestoreCustom(PackageEvent $event) {
