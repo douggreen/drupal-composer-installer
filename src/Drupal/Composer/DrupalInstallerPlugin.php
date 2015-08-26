@@ -464,7 +464,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
 
         $this->io->write('  - Removing upstream branch <info>' . $branchName. '</info> from GIT remote <info>' . $this->git['remote'] . '</info> because it is unchanged.');
-        $this->executeCommand("git push %s :%s", $this->git['base-branch'], $branchName);
+        $this->executeCommand("git push %s :%s", $this->git['remote'], $branchName);
     }
 
     function afterAllPatches(PackageEvent $event) {
