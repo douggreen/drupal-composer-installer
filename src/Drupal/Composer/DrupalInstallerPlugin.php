@@ -286,7 +286,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $packagePath = $this->installer->getPackageBasePath($package);
 
         $this->io->write('  - Committing <info>' . $packageName . '</info> with version <info>' . $package->getVersion(). '</info> to GIT.');
-        $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Update package ' . $packageName . ' to version ' . $package->getVersion() . '" }', $packagePath);
+        $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Update package ' . $packageName . ' to version ' . $package->getVersion() . '"; }', $packagePath);
         $this->afterCommit($package);
     }
 
@@ -445,7 +445,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $description = $event->getDescription();
 
         $this->io->write('  - Committing patch <info>' . $url . '</info> <comment>' . $description . '</comment> for package <info>' . $packageName . '</info> to GIT.');
-        $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Applied patch ' . $url . ' (' . $description . ') for ' . $packageName . '." }', $packagePath);
+        $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Applied patch ' . $url . ' (' . $description . ') for ' . $packageName . '."; }', $packagePath);
         $this->afterCommit($package);
     }
 
