@@ -7,10 +7,9 @@ use Composer\Installer\LibraryInstaller;
 use Composer\IO\IOInterface;
 use Composer\Composer;
 
-class DrupalInstaller extends LibraryInstaller
-{
-    public function __construct(IOInterface $io, Composer $composer)
-    {
+class DrupalInstaller extends LibraryInstaller {
+
+    public function __construct(IOInterface $io, Composer $composer) {
         parent::__construct($io, $composer);
 
         $extra = $this->composer->getPackage()->getExtra();
@@ -41,8 +40,7 @@ class DrupalInstaller extends LibraryInstaller
     /**
      * {@inheritDoc}
      */
-    public function getPackageBasePath(PackageInterface $package)
-    {
+    public function getPackageBasePath(PackageInterface $package) {
         $packageName = strtolower($package->getName());
 
         if (isset($this->cached[$packageName])) {
@@ -77,7 +75,7 @@ class DrupalInstaller extends LibraryInstaller
             }
         }
         if ($path) {
-            $this->io->write("<info>Installing $packageName in $path.</info>");
+            $this->io->write("Installing <info>$packageName</info> in <info>$path.</info>");
         }
         else {
             $path = parent::getPackageBasePath($package);
@@ -91,8 +89,7 @@ class DrupalInstaller extends LibraryInstaller
     /**
      * {@inheritDoc}
      */
-    public function supports($packageType)
-    {
+    public function supports($packageType) {
         return TRUE;
     }
 }

@@ -31,7 +31,7 @@ You'll also want to add a packageist as follows (that is, until drupal.org imple
       "type": "composer",
       "url": "http://drupal-packagist.webflo.io/"
     }
-  ],
+  ]
 ```
 
 Your somewhat complete composer.json might look like:
@@ -67,7 +67,7 @@ Your somewhat complete composer.json might look like:
 ```
   "extra": {
     "drupal-root": "docroot"
-  },
+  }
 ```
 
 ### drupal-libraries - map of packages to install into {drupal-root}/sites/all/libraries.
@@ -78,8 +78,8 @@ The package is the key name. Any value specifies a directory name under sites/al
   "extra": {
     "drupal-libraries": {
       "harvesthq/chosen" : "",
-      "desandro/imagesloaded" : "jquery-imagesloaded",
-    },
+      "desandro/imagesloaded" : "jquery-imagesloaded"
+    }
   },
 ```
 
@@ -95,8 +95,8 @@ or {drupal-root}/sites/all/modules/project. Additional directories can be specif
     "drupal-modules": {
       "vendor/*": "vendor",
       "vendor/name": "sandbox"
-    },
-  },
+    }
+  }
 ```
 
 The value ```"drupal/*": "contrib"``` is implied by default but can be overridden.
@@ -109,14 +109,79 @@ This is array of custom code paths that should be saved before drupal/drupal is 
   "extra": {
     "drupal-custom": [
       "core/sites/all/themes/mytheme"
-    ],
-  },
+    ]
+  }
 ```
 
 The values ```sites/all/modules/custom``` and ```sites/all/themes/custom``` are implied by default and do not
 need to be listed.
 
-### no-git-dir - optional
+### git - optional
 
-If set, any .git directory that is downloaded from "git" "repositories" is removed.
-Set this to avoid git subprojects.
+Optionally, control the use of git.
+
+Git is used in two ways during installation.
+
+Git is used on download and installation.
+When installing from a git repository a local .git directory is left in the installation directory.
+This subdirectory is needed for git update to work properly.
+However, many projects using this installer, wish to check the installed downloaded projects into their own git repository, and may not wish to use subtrees.
+To avoid using subtree's, set extra.git.path to any alternative path, such as ".git-drupal" and then add that same path to the project's .gitignore.
+Then when downloading from a git repository, the .git directory will be restored to .git before doing and update and renamed after the installation.
+
+```
+  "extra": {
+    "git": {
+      "path": ".git-drupal"
+    }
+  }
+```
+
+Git can also be used to save the downloaded and installed subprojects into a local project git.
+
+Set extra.git.commit to enable git commit's after each installation and patch.
+By default this is 0
+
+Set extra.git.commit-prefix to add a prefix to each commit message.
+By default this is empty.
+
+```
+  "extra": {
+    "git": {
+      "commit": 1,
+      "commit-prefix": "Drupal composer installer: "
+    }
+  }
+```
+
+The commit prefix can be overridden using the COMPOSER_GIT_COMMIT_PREFIX environment variable.
+
+```
+COMPOSER_GIT_COMMIT_PREFIX="Ticket #1234: " composer.phar install
+```
+
+Set extra.git.base-branch to force a git checkout of the base branch before creating new branches.
+And then set extra.git.branch-prefix to force the creation of new branches for each project.
+By default the base-branch is empty, meaning any commit happens only to the current branch.
+But if base-branch and branch-prefix are set, then each installed project is put into a new branch.
+
+```
+  "extra": {
+    "git": {
+      "base-branch": "master",
+      "branch-prefix": "composer-"
+    }
+  }
+```
+
+Set extra.git.auto-push to enable a git push of each branch.
+And set extra.git.remote to define which remote the branch is pushed to.
+
+```
+  "extra": {
+    "git": {
+      "auto-push": 0,
+      "remote": "origin"
+    }
+  }
+```
