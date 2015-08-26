@@ -285,11 +285,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $packageName = $package->getName();
         $packagePath = $this->installer->getPackageBasePath($package);
 
-        if ($this->isGitDiff()) {
-            $this->io->write('  - Committing <info>' . $packageName . '</info> with version <info>' . $package->getVersion(). '</info> to GIT.');
-            $this->executeCommand('cd %s && git add --all . && git commit -m "' . $this->git['commit-prefix'] . 'Update package ' . $packageName . ' to version ' . $package->getVersion() . '"', $packagePath);
-            $this->afterCommit($package);
-        }
+        $this->io->write('  - Committing <info>' . $packageName . '</info> with version <info>' . $package->getVersion(). '</info> to GIT.');
+        $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Update package ' . $packageName . ' to version ' . $package->getVersion() . '" }', $packagePath);
+        $this->afterCommit($package);
     }
 
     protected function afterCommit($package) {
@@ -446,11 +444,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $url = $event->getUrl();
         $description = $event->getDescription();
 
-        if ($this->isGitDiff()) {
-            $this->io->write('  - Committing patch <info>' . $url . '</info> <comment>' . $description . '</comment> for package <info>' . $packageName . '</info> to GIT.');
-            $this->executeCommand('cd %s && git add --all . && git commit -m "' . $this->git['commit-prefix'] . 'Applied patch ' . $url . ' (' . $description . ') for ' . $packageName . '."', $packagePath);
-            $this->afterCommit($package);
-        }
+        $this->io->write('  - Committing patch <info>' . $url . '</info> <comment>' . $description . '</comment> for package <info>' . $packageName . '</info> to GIT.');
+        $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Applied patch ' . $url . ' (' . $description . ') for ' . $packageName . '." }', $packagePath);
+        $this->afterCommit($package);
     }
 
     protected function afterAllPatchesGitBranchCleanup($package) {

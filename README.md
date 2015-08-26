@@ -19,7 +19,7 @@ To use this installer in your project build, in your composer.json add
     }
   ],
   "require": {
-    "drupal/composer-installer": "~1.0"
+    "drupal/composer-installer": "~2.0"
   }
 ```
 
@@ -183,5 +183,18 @@ And set extra.git.remote to define which remote the branch is pushed to.
       "auto-push": 0,
       "remote": "origin"
     }
+  }
+```
+
+### patches - optional
+
+The installer works well with https://github.com/cweagans/composer-patches,
+however you must have https://github.com/cweagans/composer-patches/pull/15,
+which at the moment means using the dev-master version.
+
+```
+  "require": {
+    "cweagans/composer-patches": "dev-master",
+    "drupal/composer-installer": "~2.0"
   }
 ```
