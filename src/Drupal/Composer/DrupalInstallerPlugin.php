@@ -291,6 +291,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     protected function afterCommit($package) {
+        // Just in case the commit failed, cleanup the branch.
+        $this->executeCommand('git reset --hard');
+
         if (!$this->git['auto-push']) {
             return;
         }
@@ -387,7 +390,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $newBranchName = $this->getBranchName($package);
 
             $this->io->write("  - Creating branch <info>$newBranchName</info> in GIT.");
-            $this->executeCommand('git branch %s %s --force && git checkout %s', $newBranchName, $this->git['base-branch'], $newBranchName, $newBranchName);
+            $this->executeCommand('git reset --hard && git branch %s %s --force && git checkout %s', $newBranchName, $this->git['base-branch'], $newBranchName, $newBranchName);
         }
 
         if (!file_exists($gitPath) && file_exists($backupPath)) {
