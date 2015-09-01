@@ -308,9 +308,10 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $packageName = $package->getName();
         $packagePath = $this->installer->getPackageBasePath($package);
+        $version = $this->getPackageVersion();
 
-        $this->io->write('  - Committing <info>' . $packageName . '</info> with version <info>' . $package->getVersion(). '</info> to GIT.');
-        $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Update package ' . $packageName . ' to version ' . $package->getVersion() . '"; }', $packagePath);
+        $this->io->write("  - Committing <info>$packageName</info> with version <info>$version</info> to GIT.");
+        $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Update package ' . $packageName . ' to version ' . $version . '"; }', $packagePath);
         $this->afterCommit($package);
     }
 
