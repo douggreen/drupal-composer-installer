@@ -13,6 +13,7 @@ use Composer\Installer\PackageEvents;
 use Composer\Util\FileSystem;
 use Composer\Util\ProcessExecutor;
 use Symfony\Component\Process\Process;
+use SimpleXMLElement;
 
 // Optionally integrate with composer-patches.
 use cweagans\Composer\PatchEvent;
@@ -92,6 +93,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             'branch-prefix' => 'composer-',
             'auto-push' => 0,
             'remote' => 'origin',
+            'security' => 0,
         );
 
         $commitPrefix = getenv("COMPOSER_GIT_COMMIT_PREFIX");
@@ -99,7 +101,27 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $this->git['commit-prefix'] = $commitPrefix;
         }
 
+        $security = getenv("COMPOSER_GIT_SECURITY");
+        if ($security) {
+            $this->git['security'] = $security;
+        }
+
         $this->io->write("  - activate DrupalInstallerPlugin");
+
+        if ($this->io->isVeryVerbose()) {
+          $this->io->write("    - <info>drupalRoot</info>=<info>$this->drupalRoot</info>");
+          if ($this->git['commit']) {
+            foreach ($this->git as $option => $value) {
+              $this->io->write("    - <info>git.$option</info>=<info>$value</info>");
+            }
+          }
+          else {
+            $this->io->write("    - <info>git.commit</info>=<info>0</info>");
+          }
+          foreach ($this->drupalCustom as $customPath) {
+            $this->io->write("    - <info>drupalCustom[]</info>=<info>$customPath</info>");
+          }
+        }
     }
 
     public static function getSubscribedEvents() {
@@ -117,29 +139,29 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         );
     }
 
-    function before(PackageEvent $event) {
+    public function before(PackageEvent $event) {
         $package = $this->getPackage($event);
         $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
         $packageType = $package->getType();
         list($packageDrupal) = explode('-', $packageType);
 
+        if ($this->io->isVeryVerbose()) {
+            $this->io->write("DrupalInstallerPlugin::before::name=$packageName, type=$packageType");
+        }
+
         if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
             return;
         }
-
-        if ($this->io->isVeryVerbose()) {
-            $this->io->write("DrupalInstaller $packageName $packageType [before]");
-        }
-
-        $this->beforeDrupalGitRestore($event, $package);
 
         if ($packageName === 'drupal/drupal') {
             $this->beforeDrupalSaveCustom($event);
         }
         else {
-            $this->beforeDrupalRewriteInfo($event);
+            $this->beforeDrupalReadInfo($event);
         }
+
+        $this->beforeDrupalGitRestore($event, $package);
     }
 
     protected function beforeDrupalSaveCustom(PackageEvent $event) {
@@ -193,16 +215,18 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
     }
 
-    protected function beforeDrupalRewriteInfo(PackageEvent $event) {
+    protected function beforeDrupalReadInfo(PackageEvent $event) {
         $package = $this->getPackage($event);
+        $packageName = $package->getName();
         $packagePath = $this->installer->getPackageBasePath($package);
-        $this->readDirVersionInfo($event, $packagePath);
+        $this->readDirVersionInfo($packageName, $packagePath);
     }
 
-    protected function readDirVersionInfo(PackageEvent $event, $dirPath) {
+    protected function readDirVersionInfo($packageName, $dirPath) {
         if (!is_dir($dirPath)) {
             return;
         }
+
         $scanFiles = @scandir($dirPath);
         foreach ($scanFiles as $partialPath) {
             if ($partialPath === '.' || $partialPath === '..') {
@@ -212,15 +236,15 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $filePath = "$dirPath/$partialPath";
 
             if (is_dir($filePath)) {
-                $this->readDirVersionInfo($event, $filePath);
+                $this->readDirVersionInfo($packageName, $filePath);
             }
             elseif (substr($partialPath, -5) === '.info') {
-                $this->info[$filePath] = $this->getFileDrupalInfo($event, $filePath);
+                $this->info[$packageName][$filePath] = $this->getFileDrupalInfo($filePath);
             }
         }
     }
 
-    function getFileDrupalInfo(PackageEvent $event, $filePath) {
+    protected function getFileDrupalInfo($filePath) {
         $info = array();
         $contents = @file($filePath);
         if ($contents) {
@@ -238,7 +262,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         return $info ? $info : NULL;
     }
 
-    function getFileVersionInfo(PackageEvent $event, $filePath) {
+    protected function getFileVersionInfo($filePath) {
         $contents = @file_get_contents($filePath);
         $regex = '/\s+version\s*=\s*"?([^"\s]*)"?/';
         if ($contents && preg_match_all($regex, $contents, $matches)) {
@@ -247,19 +271,19 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         return NULL;
     }
 
-    function after(PackageEvent $event) {
+    public function after(PackageEvent $event) {
         $package = $this->getPackage($event);
         $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
         $packageType = $package->getType();
         list($packageDrupal) = explode('-', $packageType);
 
-        if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
-            return;
+        if ($this->io->isVeryVerbose()) {
+            $this->io->write("DrupalInstallerPlugin::after::name=$packageName, type=$packageType");
         }
 
-        if ($this->io->isVeryVerbose()) {
-            $this->io->write("DrupalInstaller $packageName $packageType [after]");
+        if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
+            return;
         }
 
         if ($packageName === 'drupal/drupal') {
@@ -277,7 +301,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
     }
 
-    protected function afterDrupalGitCommit(PackageEvent $event, $package) {
+    protected function afterDrupalGitCommit(PackageEvent $event, PackageInterface $package) {
         if (!$this->git['commit']) {
             return;
         }
@@ -290,7 +314,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $this->afterCommit($package);
     }
 
-    protected function afterCommit($package) {
+    protected function afterCommit(PackageInterface $package) {
         // Just in case the commit failed, cleanup the branch.
         $this->executeCommand('git reset --hard');
 
@@ -322,7 +346,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     protected function afterDrupalRewriteInfo(PackageEvent $event, PackageInterface $package) {
-        $packageVersion = $package->getVersion();
         $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
 
@@ -330,14 +353,14 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $info = array(
             'project' => $project,
-            'version' => $packageVersion,
+            'version' => $this->getPackageVersion($package),
             'date' => date('Y-m-d'),
             'datestamp' => time(),
         );
-        $this->rewriteDirInfo($event, $packagePath, $info);
+        $this->rewriteDirInfo($packageName, $packagePath, $info);
     }
 
-    protected function rewriteDirInfo(PackageEvent $event, $dirPath, $info) {
+    protected function rewriteDirInfo($packageName, $dirPath, $info) {
         $scanFiles = scandir($dirPath);
         foreach ($scanFiles as $partialPath) {
             if ($partialPath === '.' || $partialPath === '..') {
@@ -347,19 +370,19 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $filePath = "$dirPath/$partialPath";
 
             if (is_dir($filePath)) {
-                $this->rewriteDirInfo($event, $filePath, $info);
+                $this->rewriteDirInfo($packageName, $filePath, $info);
             }
             elseif (substr($partialPath, -5) === '.info') {
-                $this->rewriteFileInfo($event, $filePath, $info);
+                $this->rewriteFileInfo($packageName, $filePath, $info);
             }
         }
     }
 
-    protected function rewriteFileInfo(PackageEvent $event, $filePath, $info) {
-        $version = $this->getFileVersionInfo($event, $filePath);
+    protected function rewriteFileInfo($packageName, $filePath, $info) {
+        $version = $this->getFileVersionInfo($filePath);
         if (!$version) {
-            if (strpos($info['version'], 'dev') === FALSE && isset($this->info[$filePath]['version']) && $this->info[$filePath]['version'] === $info['version']) {
-                $info = $this->info[$filePath] + $info;
+            if (strpos($info['version'], 'dev') === FALSE && isset($this->info[$packageName][$filePath]['version']) && $this->info[$packageName][$filePath]['version'] === $info['version']) {
+                $info = $this->info[$packageName][$filePath] + $info;
             }
 
             $this->io->write("  - Rewriting <info>$filePath</info> with version <info>$info[version]</info>");
@@ -424,13 +447,13 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $packageType = $package->getType();
         list($packageDrupal) = explode('-', $packageType);
 
-        if ($packageDrupal !== 'drupal') {
-            return;
-        }
-
         if ($this->io->isVeryVerbose()) {
             $packageName = $package->getName();
-            $this->io->write("DrupalInstaller $packageName $packageType [afterPatch]");
+            $this->io->write("DrupalInstallerPlugin::afterPatch::name=$packageName, type=$packageType");
+        }
+
+        if ($packageDrupal !== 'drupal') {
+            return;
         }
 
         $this->afterPatchGitCommit($event, $package);
@@ -452,25 +475,37 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $this->afterCommit($package);
     }
 
-    protected function afterAllPatchesGitBranchCleanup($package) {
+    protected function afterAllPatchesGitBranchCleanup(PackageInterface $package) {
         $branchName = $this->getBranchName($package);
 
-        if (!$this->git['base-branch'] || $this->isGitDiff($branchName)) {
+        if ($this->io->isVeryVerbose()) {
+            $this->io->write("DrupalInstallerPlugin::afterAllPatchesGitBranchCleanup::branch=$branchName");
+        }
+
+        if (!$this->git['base-branch']) {
             return;
         }
 
-        $this->io->write('  - Removing local branch <info>' . $branchName. '</info> from GIT because it is unchanged.');
+        $isGitDiff = $this->isGitDiff($branchName);
+        if ($isGitDiff && (!$this->git['security'] || substr($branchName, -3) === '-SA')) {
+            if ($this->io->isVeryVerbose()) {
+                $this->io->write("  - Keeping branch <info>$branchName</info>, git.security=" . $this->git['security'] . ", sa=" .  substr($branchName, -3) . '.');
+            }
+            return;
+        }
+
+        $this->io->write("  - Removing local branch <info>$branchName</info> from GIT.");
         $this->executeCommand('git checkout %s && git branch -D %s', $this->git['base-branch'], $branchName);
 
         if (!$this->git['auto-push']) {
             return;
         }
 
-        $this->io->write('  - Removing upstream branch <info>' . $branchName. '</info> from GIT remote <info>' . $this->git['remote'] . '</info> because it is unchanged.');
+        $this->io->write("  - Removing upstream branch <info>$branchName</info> from GIT remote <info>" . $this->git['remote'] . "</info>.");
         $this->executeCommand("git push %s :%s", $this->git['remote'], $branchName);
     }
 
-    function afterAllPatches(PackageEvent $event) {
+    public function afterAllPatches(PackageEvent $event) {
         $package = $this->getPackage($event);
         $packageType = $package->getType();
         list($packageDrupal) = explode('-', $packageType);
@@ -518,10 +553,66 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         return $this->getPackage($event)->getName();
     }
 
-    protected function getBranchName($package) {
+    protected function getPackageVersion(PackageInterface $package) {
+        $version = $package->getPrettyVersion();
+
+        if (substr($version, 0, 4) === 'dev-') {
+            return substr($version, 4);
+        }
+
+        // Convert composer versions back to Drupal versions.
         $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
-        return str_replace('_', '-', $this->git['branch-prefix'] . $project);
+        if ($vendor === 'drupal' && preg_match('/(\d+).(\d+).(\d+)(-[\w\d]+)?/', $version, $matches)) {
+            if ($project === 'drupal') {
+                // Drupal core versions have two numbers, i.e. 7.38.
+                $version = $matches[1] . '.' . $matches[2];
+                // Drupal core's last last number should always be 0.
+                if (!empty($matches[3])) {
+                    $version .= '.' . $matches[3];
+                }
+            }
+            else {
+                // Drupal contrib versions have three numbers, i.e. 7.x-1.7.
+                $version = $matches[1] . '.x-' . $matches[2] . '.' . $matches[3];
+            }
+            if (!empty($matches[4])) {
+                $version .= $matches[4];
+            }
+        }
+
+        return $version;
+    }
+
+    protected function getPackageFileVersion(PackageInterface $package) {
+        $packageName = $package->getName();
+        if (isset($this->info[$packageName])) {
+            $packageInfo = reset($this->info[$packageName]);
+            if (isset($packageInfo['version'])) {
+                return $packageInfo['version'];
+            }
+        }
+        return NULL;
+    }
+
+    protected function getBranchName(PackageInterface $package) {
+        $packageName = $package->getName();
+
+        static $cached;
+        if (!isset($cached[$packageName])) {
+            list($vendor, $project) = explode('/', $packageName);
+            $version = $this->getPackageVersion($package);
+            $branchVersion = preg_match('/\d+.x-(.*)/', $version, $match) ? $match[1] : $version;
+
+            $branchName = str_replace('_', '-', $this->git['branch-prefix'] . $project) . '-' . $version;
+            if ($vendor === 'drupal' && $this->isSecurityAdvisory($package, $project, $version)) {
+                $branchName .= '-SA';
+            }
+
+            $cached[$packageName] = $branchName;
+        }
+
+        return isset($cached[$packageName]) ? $cached[$packageName] : 'unknown';
     }
 
     /**
@@ -555,5 +646,98 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             };
         }
         return $this->executor->execute($command, $output) == 0;
+    }
+
+    protected function isSecurityAdvisory(PackageInterface $package, $project, $version) {
+
+        $history = $this->getUpdateReleaseHistory($project, $version[0]);
+        if (isset($history['releases'])) {
+            $oldVersion = $this->getPackageFileVersion($package);
+
+            foreach ($history['releases'] as $releaseVersion => $releaseInfo) {
+                if (isset($releaseInfo['terms']['Release type']) && in_array('Security update', $releaseInfo['terms']['Release type'])) {
+                    if ($this->versionCompare($oldVersion, $releaseVersion) >= 0 && $this->versionCompare($version, $releaseVersion) <= 0) {
+                        return TRUE;
+                    }
+                }
+            }
+        }
+        return FALSE;
+    }
+
+    protected function versionCompare($v1, $v2) {
+        // Assume that $v2 is never NULL, but $v1 can be NULL.
+        if ($v1 === NULL) {
+            return 1;
+        }
+
+        // @todo: better version compare.
+        return strcmp($v1, $v2);
+    }
+
+    protected function getUpdateReleaseHistory($project, $major) {
+        $url = "http://updates.drupal.org/release-history/$project/$major.x";
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Drupal composer installer');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $raw_xml = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        return $status === 200 ? $this->update_parse_xml($raw_xml) : array();
+    }
+
+    /**
+     * Parses the XML of the Drupal release history info files.
+     *
+     * Copied from Drupal core.
+     *
+     * @param $raw_xml
+     *   A raw XML string of available release data for a given project.
+     *
+     * @return
+     *   Array of parsed data about releases for a given project, or NULL if there
+     *   was an error parsing the string.
+     */
+    protected function update_parse_xml($raw_xml) {
+        try {
+            $xml = new SimpleXMLElement($raw_xml);
+        }
+        catch (Exception $e) {
+            // SimpleXMLElement::__construct produces an E_WARNING error message for
+            // each error found in the XML data and throws an exception if errors
+            // were detected. Catch any exception and return failure (NULL).
+            return;
+        }
+        // If there is no valid project data, the XML is invalid, so return failure.
+        if (!isset($xml->short_name)) {
+            return;
+        }
+        $short_name = (string) $xml->short_name;
+        $data = array();
+        foreach ($xml as $k => $v) {
+            $data[$k] = (string) $v;
+        }
+        $data['releases'] = array();
+        if (isset($xml->releases)) {
+            foreach ($xml->releases->children() as $release) {
+                $version = (string) $release->version;
+                $data['releases'][$version] = array();
+                foreach ($release->children() as $k => $v) {
+                    $data['releases'][$version][$k] = (string) $v;
+                }
+                $data['releases'][$version]['terms'] = array();
+                if ($release->terms) {
+                    foreach ($release->terms->children() as $term) {
+                        if (!isset($data['releases'][$version]['terms'][(string) $term->name])) {
+                            $data['releases'][$version]['terms'][(string) $term->name] = array();
+                        }
+                        $data['releases'][$version]['terms'][(string) $term->name][] = (string) $term->value;
+                    }
+                }
+            }
+        }
+        return $data;
     }
 }

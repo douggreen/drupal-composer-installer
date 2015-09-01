@@ -186,6 +186,27 @@ And set extra.git.remote to define which remote the branch is pushed to.
   }
 ```
 
+Git branch names append the project version number.
+Git branch names also end with "-SA" the difference between the old version and the current version includes a 'Security advisory'.
+
+Set extra.git.security to force only the saving of security advisory's.
+
+```
+  "extra": {
+    "git": {
+      "base-branch": "master",
+      "branch-prefix": "composer-",
+      "security": 1
+    }
+  }
+```
+
+Alternatively, this can also be set using the COMPOSER_GIT_SECURITY environment variable.
+
+```
+COMPOSER_GIT_SECURITY=1 composer.phar install
+```
+
 ### patches - optional
 
 The installer works well with https://github.com/cweagans/composer-patches,
