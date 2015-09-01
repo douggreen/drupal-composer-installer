@@ -563,22 +563,32 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         // Convert composer versions back to Drupal versions.
         $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
-        if ($vendor === 'drupal' && preg_match('/(\d+).(\d+).(\d+)(-[\w\d]+)?/', $version, $matches)) {
-            if ($project === 'drupal') {
-                // Drupal core versions have two numbers, i.e. 7.38.
-                $version = $matches[1] . '.' . $matches[2];
-                // Drupal core's last last number should always be 0.
-                if (!empty($matches[3])) {
-                    $version .= '.' . $matches[3];
+        if ($vendor === 'drupal') {
+            if (preg_match('/(\d+).(\d+).(\d+)(-[\w\d]+)?/', $version, $matches)) {
+                if ($project === 'drupal') {
+                    // Drupal core versions have two numbers, i.e. 7.38.
+                    $version = $matches[1] . '.' . $matches[2];
+                    // Drupal core's last last number should always be 0.
+                    if (!empty($matches[3])) {
+                        $version .= '.' . $matches[3];
+                    }
+                }
+                else {
+                    // Drupal contrib versions have three numbers, i.e. 7.x-1.7.
+                    $version = $matches[1] . '.x-' . $matches[2] . '.' . $matches[3];
+                }
+                if (!empty($matches[4])) {
+                    $version .= $matches[4];
                 }
             }
-            else {
-                // Drupal contrib versions have three numbers, i.e. 7.x-1.7.
-                $version = $matches[1] . '.x-' . $matches[2] . '.' . $matches[3];
-            }
-            if (!empty($matches[4])) {
-                $version .= $matches[4];
-            }
+        }
+
+        // Convert v1.2.3 to just 1.2.3 as special case for how I tag local
+        // projects. @todo: generlize this?
+        else {
+             if (preg_match('/v[\d+.]*/', $version)) {
+                 $version = substr($version, 1);
+             }
         }
 
         return $version;
