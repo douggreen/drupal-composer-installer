@@ -186,6 +186,12 @@ And set extra.git.remote to define which remote the branch is pushed to.
   }
 ```
 
+Alternatively, the remote can also be set using the COMPOSER_GIT_REMOTE environment variable.
+
+```
+COMPOSER_GIT_REMOTE=upstream composer.phar install
+```
+
 Git branch names append the project version number.
 Git branch names also end with "-SA" the difference between the old version and the current version includes a 'Security advisory'.
 
