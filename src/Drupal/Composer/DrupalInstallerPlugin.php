@@ -415,8 +415,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $backupPath = $packagePath . '/' . $this->git['path'];
 
         if ($this->git['base-branch']) {
-            // verify the base branch exists.
-            $this->executeCommand('git rev-parse --verify %s', $this->git['base-branch']);
+            $this->gitBranchExists($this->git['base-branch']);
 
             $newBranchName = $this->getBranchName($package);
 
@@ -494,6 +493,8 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             return;
         }
 
+        $this->gitBranchExists($this->git['base-branch']);
+
         $isGitDiff = $this->isGitDiff($branchName);
         if ($isGitDiff && (!$this->git['security'] || substr($branchName, -3) === '-SA')) {
             if ($this->io->isVeryVerbose()) {
@@ -524,6 +525,11 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
                 $this->afterAllPatchesGitBranchCleanup($package);
             }
         }
+    }
+
+    protected function gitBranchExists($branch_name) {
+        // verify the base branch exists.
+        $this->executeCommand('git rev-parse --verify %s', $this->git['base-branch']);
     }
 
     /**
