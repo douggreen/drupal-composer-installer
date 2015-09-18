@@ -415,6 +415,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $backupPath = $packagePath . '/' . $this->git['path'];
 
         if ($this->git['base-branch']) {
+            // verify the base branch exists.
+            $this->executeCommand('git rev-parse --verify %s', $this->git['base-branch']);
+
             $newBranchName = $this->getBranchName($package);
 
             $this->io->write("  - Creating branch <info>$newBranchName</info> in GIT.");
