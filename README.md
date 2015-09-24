@@ -29,7 +29,7 @@ You'll also want to add a packageist as follows (that is, until drupal.org imple
   "repositories": [
     {
       "type": "composer",
-      "url": "http://drupal-packagist.webflo.io/"
+      "url": "https://packagist.drupal-composer.org/"
     }
   ]
 ```
@@ -42,7 +42,7 @@ Your somewhat complete composer.json might look like:
   "repositories": [
     {
       "type": "composer",
-      "url": "http://drupal-packagist.webflo.io/"
+      "url": "https://packagist.drupal-composer.org/"
     },
     {
       "type": "git",
