@@ -12,6 +12,7 @@ use Composer\Script\PackageEvent;
 use Composer\Installer\PackageEvents;
 use Composer\Util\FileSystem;
 use Composer\Util\ProcessExecutor;
+use Composer\Package\Version\VersionParser;
 use Symfony\Component\Process\Process;
 use SimpleXMLElement;
 
@@ -158,11 +159,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             return;
         }
 
+        $this->beforeDrupalReadInfo($event);
         if ($packageName === 'drupal/drupal') {
             $this->beforeDrupalSaveCustom($event);
-        }
-        else {
-            $this->beforeDrupalReadInfo($event);
         }
 
         $this->beforeDrupalGitRestore($event, $package);
@@ -675,14 +674,21 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     protected function isSecurityAdvisory(PackageInterface $package, $project, $version) {
+        // Development release can never be a Security Advisory.
+        if (strpos($version, 'dev') !== FALSE) {
+            return;
+        }
 
         $history = $this->getUpdateReleaseHistory($project, $version[0]);
         if (isset($history['releases'])) {
             $oldVersion = $this->getPackageFileVersion($package);
+            if (empty($oldVersion)) {
+                $oldVersion = "0.0.0.0";
+            }
 
             foreach ($history['releases'] as $releaseVersion => $releaseInfo) {
                 if (isset($releaseInfo['terms']['Release type']) && in_array('Security update', $releaseInfo['terms']['Release type'])) {
-                    if ($this->versionCompare($oldVersion, $releaseVersion) >= 0 && $this->versionCompare($version, $releaseVersion) <= 0) {
+                    if ($this->versionCompare($oldVersion, $releaseVersion) < 0 && $this->versionCompare($version, $releaseVersion) >= 0) {
                         return TRUE;
                     }
                 }
@@ -692,13 +698,18 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     protected function versionCompare($v1, $v2) {
-        // Assume that $v2 is never NULL, but $v1 can be NULL.
-        if ($v1 === NULL) {
-            return 1;
-        }
+        // Parse the version, this gets all the numbers.
+        $parser = new VersionParser();
+        $version1 = $parser->normalize($v1);
+        $version2 = $parser->normalize($v2);
 
-        // @todo: better version compare.
-        return strcmp($v1, $v2);
+        // Add a point version for the stability level.
+        $stabilities = array('dev', 'alpha', 'beta', 'RC', 'stable');
+        $version1 .= '.' . array_search($parser->parseStability($v1), $stabilities);
+        $version2 .= '.' . array_search($parser->parseStability($v2), $stabilities);
+
+        // Compare the versions.
+        return version_compare($version1, $version2);
     }
 
     protected function getUpdateReleaseHistory($project, $major) {
