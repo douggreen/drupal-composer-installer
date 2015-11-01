@@ -98,9 +98,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         );
 
         // Read user environment overrides.
-        $remote = getenv("COMPOSER_GIT_REMOTE");
+        $remote = isset(getenv("COMPOSER_GIT_REMOTE")) ? getenv("COMPOSER_GIT_REMOTE") : 'origin';
         if ($remote) {
-            $this->git['remote'] = 'origin';
+            $this->git['remote'] = $remote;
         }
         $commitPrefix = getenv("COMPOSER_GIT_COMMIT_PREFIX");
         if ($commitPrefix) {
