@@ -12,7 +12,6 @@ use Composer\Script\PackageEvent;
 use Composer\Installer\PackageEvents;
 use Composer\Util\FileSystem;
 use Composer\Util\ProcessExecutor;
-use Composer\Package\Version\VersionParser;
 use Symfony\Component\Process\Process;
 use SimpleXMLElement;
 
@@ -269,7 +268,8 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $contents = @file_get_contents($filePath);
         $regex = '/\s+version\s*=\s*"?([^"\s]*)"?/';
         if ($contents && preg_match_all($regex, $contents, $matches)) {
-            return end($matches[1]);
+            $version = end($matches[1]);
+            return $this->normalizeVersion($version);
         }
         return NULL;
     }
@@ -614,7 +614,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         if (isset($this->info[$packageName])) {
             $packageInfo = reset($this->info[$packageName]);
             if (isset($packageInfo['version'])) {
-                return $packageInfo['version'];
+                return $this->normalizeVersion($packageInfo['version']);
             }
         }
         return NULL;
@@ -681,14 +681,14 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $history = $this->getUpdateReleaseHistory($project, $version[0]);
         if (isset($history['releases'])) {
+            $version = $this->normalizeVersion($version);
             $oldVersion = $this->getPackageFileVersion($package);
-            if (empty($oldVersion)) {
-                $oldVersion = "0.0.0.0";
-            }
+            $oldVersion = $this->normalizeVersion($oldVersion);
 
             foreach ($history['releases'] as $releaseVersion => $releaseInfo) {
+                $releaseVersion = $this->normalizeVersion($releaseVersion);
                 if (isset($releaseInfo['terms']['Release type']) && in_array('Security update', $releaseInfo['terms']['Release type'])) {
-                    if ($this->versionCompare($oldVersion, $releaseVersion) < 0 && $this->versionCompare($version, $releaseVersion) >= 0) {
+                    if (version_compare($oldVersion, $releaseVersion) < 0 && version_compare($version, $releaseVersion) >= 0) {
                         return TRUE;
                     }
                 }
@@ -697,19 +697,35 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         return FALSE;
     }
 
-    protected function versionCompare($v1, $v2) {
-        // Parse the version, this gets all the numbers.
-        $parser = new VersionParser();
-        $version1 = $parser->normalize($v1);
-        $version2 = $parser->normalize($v2);
+    protected function normalizeVersion($version) {
+        $version = strtolower($version);
+        $stabilities = array('dev', 'unstable', 'alpha', 'beta', 'rc');
+        $stabilities_regex = implode('|', $stabilities);
+        if (empty($version) || !preg_match_all('/((' . $stabilities_regex . ')?[0-9]+)/', $version, $version_matches)) {
+            $versions = array(0, 0, 0, 0);
+        }
+        else {
+            $versions = $version_matches[0];
+            $stability_versions = preg_grep('/' . $stabilities_regex . '/', $versions);
+            if ($stability_versions) {
+                $versions = array_diff($versions, $stability_versions);
+            }
 
-        // Add a point version for the stability level.
-        $stabilities = array('dev', 'alpha', 'beta', 'RC', 'stable');
-        $version1 .= '.' . array_search($parser->parseStability($v1), $stabilities);
-        $version2 .= '.' . array_search($parser->parseStability($v2), $stabilities);
+            if (preg_match('/(' . $stabilities_regex . ')([0-9]+)?/', $version, $stability_matches)) {
+                $versions[] = array_search($stability_matches[1], $stabilities);
+                if (!empty($stability_matches[2])) {
+                    $versions[] = $stability_matches[2];
+                }
+            }
+            // Look for a version that ends in .x, such as 7.x-1.x,
+            // which is a dev version.
+            elseif (substr($version, -2) == '.x') {
+                $versions[] = 0;
+            }
+        }
 
-        // Compare the versions.
-        return version_compare($version1, $version2);
+        $new_version = implode('.', $versions);
+        return $new_version;
     }
 
     protected function getUpdateReleaseHistory($project, $major) {
