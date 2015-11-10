@@ -18,6 +18,7 @@ class DrupalInstaller extends LibraryInstaller {
             'drupal-modules' => array(),
             'drupal-themes' => array(),
             'drupal-root' => 'core',
+            'drupal-site' => 'all',
         );
 
         $this->drupalLibraries = $extra['drupal-libraries'] + array(
@@ -33,6 +34,7 @@ class DrupalInstaller extends LibraryInstaller {
         );
 
         $this->drupalRoot = $extra['drupal-root'];
+        $this->drupalSite = $extra['drupal-site'];
 
         $this->cached = array();
     }
@@ -53,6 +55,7 @@ class DrupalInstaller extends LibraryInstaller {
         else {
             list($vendor, $name) = explode('/', $packageName);
 
+            $basePath = "$this->drupalRoot/sites/$this->drupalSite";
             $path = '';
             foreach (array('module' => 'drupalModules', 'theme' => 'drupalThemes') as $type => $drupalType) {
                 if ($package->getType() === "drupal-$type") {
@@ -62,13 +65,13 @@ class DrupalInstaller extends LibraryInstaller {
                             $subdir = $this->{$drupalType}[$key];
                         }
                     }
-                    $path = "$this->drupalRoot/sites/all/{$type}s/$subdir/$name";
+                    $path = "$basePath/{$type}s/$subdir/$name";
                 }
             }
             if (!$path) {
                 foreach (array($packageName, "$vendor/*") as $key) {
                     if (isset($this->drupalLibraries[$key])) {
-                        $path = $this->drupalRoot . '/sites/all/libraries/';
+                        $path = "$basePath/libraries/";
                         $path .= empty($this->drupalLibraries[$key]) ? $name : $this->drupalLibraries[$key];
                     }
                 }
