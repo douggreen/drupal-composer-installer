@@ -3,8 +3,10 @@
 Drupal composer installer plugin
 
 * Installs Drupal core into drupal-root.
-* Installs Drupal modules into {drupal-root}/sites/all/modules/{dir}.
-* Installs libraries into {drupal-root}/sites/all/libraries.
+* Installs Drupal modules, themes, and libraries into the sites or profile directory.
+* For example, installs Drupal modules into {drupal-root}/sites/all/modules/{dir}.
+* For example, installs Drupal themes into {drupal-root}/sites/all/themes/{dir}.
+* For example, installs libraries into {drupal-root}/sites/all/libraries.
 * Saves and restores custom code around drupal/drupal installation.
 
 ## Usage
@@ -67,6 +69,27 @@ Your somewhat complete composer.json might look like:
 ```
   "extra": {
     "drupal-root": "docroot"
+  }
+```
+
+### drupal-site - the directory under 'sites', defaults to 'all'.
+
+```
+  "extra": {
+    "drupal-site": "mysite"
+  }
+```
+
+When set, changes the install from sites/all to sites/mysite.
+
+### drupal-sites - the directory under drupal-root, defaults to 'sites'.
+
+When installing a profile, set this to 'profiles'.
+
+```
+  "extra": {
+    "drupal-sites": "profiles",
+    "drupal-site": "myprofile"
   }
 ```
 

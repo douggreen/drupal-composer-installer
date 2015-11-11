@@ -18,6 +18,7 @@ class DrupalInstaller extends LibraryInstaller {
             'drupal-modules' => array(),
             'drupal-themes' => array(),
             'drupal-root' => 'core',
+            'drupal-sites' => 'sites',
             'drupal-site' => 'all',
         );
 
@@ -34,6 +35,7 @@ class DrupalInstaller extends LibraryInstaller {
         );
 
         $this->drupalRoot = $extra['drupal-root'];
+        $this->drupalSites = $extra['drupal-sites'];
         $this->drupalSite = $extra['drupal-site'];
 
         $this->cached = array();
@@ -55,7 +57,7 @@ class DrupalInstaller extends LibraryInstaller {
         else {
             list($vendor, $name) = explode('/', $packageName);
 
-            $basePath = "$this->drupalRoot/sites/$this->drupalSite";
+            $basePath = "$this->drupalRoot/$this->drupalSites/$this->drupalSite";
             $path = '';
             foreach (array('module' => 'drupalModules', 'theme' => 'drupalThemes') as $type => $drupalType) {
                 if ($package->getType() === "drupal-$type") {
