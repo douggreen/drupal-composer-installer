@@ -602,12 +602,15 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             }
         }
 
-        // Convert v1.2.3 to just 1.2.3 as special case for how I tag local
-        // projects. @todo: generlize this?
         else {
+             // Convert v1.2.3 to just 1.2.3 as special case for how I tag local
+             // projects. @todo: generlize this?
              if (preg_match('/v[\d+.]*/', $version)) {
                  $version = substr($version, 1);
              }
+
+             // Replace / in version with a dash.
+             $version = str_replace('/', '-', $version);
         }
 
         return $version;
