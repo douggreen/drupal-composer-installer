@@ -154,13 +154,15 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $this->io->write("DrupalInstallerPlugin::before::name=$packageName, type=$packageType");
         }
 
-        if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
-            return;
-        }
+        if ($packageType !== 'library') {
+            if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
+                return;
+            }
 
-        $this->beforeDrupalReadInfo($event);
-        if ($packageName === 'drupal/drupal') {
-            $this->beforeDrupalSaveCustom($event);
+            $this->beforeDrupalReadInfo($event);
+            if ($packageName === 'drupal/drupal') {
+                $this->beforeDrupalSaveCustom($event);
+            }
         }
 
         $this->beforeDrupalGitRestore($event, $package);
@@ -285,15 +287,17 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $this->io->write("DrupalInstallerPlugin::after::name=$packageName, type=$packageType");
         }
 
-        if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
-            return;
-        }
+        if ($packageType !== 'library') {
+            if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
+                return;
+            }
 
-        if ($packageName === 'drupal/drupal') {
-            $this->afterDrupalRestoreCustom($event);
-        }
-        else {
-            $this->afterDrupalRewriteInfo($event, $package);
+            if ($packageName === 'drupal/drupal') {
+                $this->afterDrupalRestoreCustom($event);
+            }
+            else {
+                $this->afterDrupalRewriteInfo($event, $package);
+            }
         }
 
         $this->afterDrupalGitBackup($event, $package);
