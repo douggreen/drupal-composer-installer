@@ -110,6 +110,10 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         if ($security) {
             $this->git['security'] = $security;
         }
+        $autoRemove = getenv("COMPOSER_GIT_AUTO_REMOVE");
+        if ($autoRemove) {
+            $this->git['auto-remove'] = $autoRemove;
+        }
 
         $this->io->write("  - activate DrupalInstallerPlugin");
 
