@@ -99,20 +99,20 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         // Read user environment overrides.
         $remote = getenv("COMPOSER_GIT_REMOTE");
-        if ($remote) {
+        if ($remote !== FALSE) {
             $this->git['remote'] = $remote;
         }
         $commitPrefix = getenv("COMPOSER_GIT_COMMIT_PREFIX");
-        if ($commitPrefix) {
+        if ($commitPrefix !== FALSE) {
             $this->git['commit-prefix'] = $commitPrefix;
         }
         $security = getenv("COMPOSER_GIT_SECURITY");
-        if ($security) {
-            $this->git['security'] = $security;
+        if ($security !== FALSE) {
+            $this->git['security'] = !empty($security);
         }
         $autoRemove = getenv("COMPOSER_GIT_AUTO_REMOVE");
-        if ($autoRemove) {
-            $this->git['auto-remove'] = $autoRemove;
+        if ($autoRemove !== FALSE) {
+            $this->git['auto-remove'] = !empty($autoRemove);
         }
 
         $this->io->write("  - activate DrupalInstallerPlugin");
