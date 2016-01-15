@@ -227,7 +227,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     protected function beforeDrupalReadInfo(PackageEvent $event) {
         $package = $this->getPackage($event);
         $packageName = $package->getName();
-        $packagePath = $this->installer->getPackageBasePath($package);
+        $packagePath = $this->installer->getInstallPath($package);
         $this->readDirVersionInfo($packageName, $packagePath);
     }
 
@@ -319,7 +319,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
 
         $packageName = $package->getName();
-        $packagePath = $this->installer->getPackageBasePath($package);
+        $packagePath = $this->installer->getInstallPath($package);
         $version = $this->getPackageVersion($package);
 
         $this->io->write("  - Committing <info>$packageName</info> with version <info>$version</info> to GIT.");
@@ -362,7 +362,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
 
-        $packagePath = $this->installer->getPackageBasePath($package);
+        $packagePath = $this->installer->getInstallPath($package);
 
         $info = array(
             'project' => $project,
@@ -418,7 +418,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             return;
         }
 
-        $packagePath = $this->installer->getPackageBasePath($package);
+        $packagePath = $this->installer->getInstallPath($package);
         $gitPath = "$packagePath/.git";
         $backupPath = $packagePath . '/' . $this->git['path'];
 
@@ -444,7 +444,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             return;
         }
 
-        $packagePath = $this->installer->getPackageBasePath($package);
+        $packagePath = $this->installer->getInstallPath($package);
         $gitPath = "$packagePath/.git";
         $backupPath = $packagePath . '/' . $this->git['path'];
 
@@ -479,7 +479,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             return;
         }
 
-        $packagePath = $this->installer->getPackageBasePath($package);
+        $packagePath = $this->installer->getInstallPath($package);
         $packageName = $package->getName();
 
         $url = $event->getUrl();

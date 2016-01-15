@@ -44,7 +44,7 @@ class DrupalInstaller extends LibraryInstaller {
     /**
      * {@inheritDoc}
      */
-    public function getPackageBasePath(PackageInterface $package) {
+    public function getInstallPath(PackageInterface $package) {
         $packageName = strtolower($package->getName());
 
         if (isset($this->cached[$packageName])) {
@@ -83,7 +83,7 @@ class DrupalInstaller extends LibraryInstaller {
             $this->io->write("Installing <info>$packageName</info> in <info>$path.</info>");
         }
         else {
-            $path = parent::getPackageBasePath($package);
+            $path = parent::getInstallPath($package);
         }
 
         $this->cached[$packageName] = $path;
