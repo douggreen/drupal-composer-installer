@@ -92,6 +92,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             'base-branch' => '',
             'branch-prefix' => 'composer-',
             'auto-push' => 0,
+            'auto-remove' => 1,
             'remote' => 'origin',
             'security' => 0,
         );
@@ -504,6 +505,10 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
                 $this->io->write("  - Keeping branch <info>$branchName</info>, git.security=" . $this->git['security'] . ", sa=" .  substr($branchName, -3) . '.');
             }
             return;
+        }
+
+        if (!$this->git['auto-remove']) {
+          return;
         }
 
         $this->io->write("  - Removing local branch <info>$branchName</info> from GIT.");

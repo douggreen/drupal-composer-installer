@@ -203,7 +203,7 @@ And set extra.git.remote to define which remote the branch is pushed to.
 ```
   "extra": {
     "git": {
-      "auto-push": 0,
+      "auto-push": 1,
       "remote": "origin"
     }
   }
@@ -213,6 +213,18 @@ Alternatively, the remote can also be set using the COMPOSER_GIT_REMOTE environm
 
 ```
 COMPOSER_GIT_REMOTE=upstream composer.phar install
+```
+
+Set extra.git.auto-remove to disable the git branch removal.
+
+```
+  "extra": {
+    "git": {
+      "auto-push": 1,
+      "auto-remove": 0,
+      "remote": "origin"
+    }
+  }
 ```
 
 Git branch names append the project version number.
