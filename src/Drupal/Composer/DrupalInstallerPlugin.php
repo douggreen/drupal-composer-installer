@@ -56,13 +56,32 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
      */
     protected $patches;
 
+    /**
+     * @var bool $optionsInited
+     */
+    protected $optionsInited = FALSE;
+
+    /**
+     * {@inheritdoc}
+     */
     public function activate(Composer $composer, IOInterface $io) {
+        $this->composer = $composer;
         $this->io = $io;
+        $this->executor = new ProcessExecutor($io);
 
         $this->installer = new DrupalInstaller($io, $composer);
         $composer->getInstallationManager()->addInstaller($this->installer);
+    }
 
-        $extra = $composer->getPackage()->getExtra();
+    /**
+     * Initializes all plugin options.
+     */
+    protected function initOptions() {
+        if ($this->optionsInited) {
+            return;
+        }
+
+        $extra = $this->composer->getPackage()->getExtra();
         $extra += array(
             'drupal-custom' => array(),
             'drupal-root' => 'core',
@@ -80,9 +99,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $this->tmp = array();
         $this->info = array();
-
-        $this->composer = $composer;
-        $this->executor = new ProcessExecutor($io);
 
         $this->git = isset($extra['git']) ? $extra['git'] : array();
         $this->git += array(
@@ -131,6 +147,8 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $this->io->write("    - <info>drupalCustom[]</info>=<info>$customPath</info>");
           }
         }
+
+        $this->optionsInited = TRUE;
     }
 
     public static function getSubscribedEvents() {
@@ -149,6 +167,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     public function before(PackageEvent $event) {
+        $this->initOptions();
         $package = $this->getPackage($event);
         $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
@@ -287,6 +306,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     public function after(PackageEvent $event) {
+        $this->initOptions();
         $package = $this->getPackage($event);
         $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
@@ -463,6 +483,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     public function afterPatch(PatchEvent $event) {
+        $this->initOptions();
         $package = $event->getPackage();
         $packageType = $package->getType();
         list($packageDrupal) = explode('-', $packageType);
@@ -532,6 +553,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     public function afterAllPatches(PackageEvent $event) {
+        $this->initOptions();
         $package = $this->getPackage($event);
         $packageType = $package->getType();
         list($packageDrupal) = explode('-', $packageType);
