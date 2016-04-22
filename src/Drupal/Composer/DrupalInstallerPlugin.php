@@ -21,6 +21,8 @@ use cweagans\Composer\PatchEvents;
 
 class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface {
 
+    use DrupalInstallerMergePluginTrait;
+
     /**
      * Optionally listen to post-patch-apply events.
      */
@@ -81,7 +83,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             return;
         }
 
-        $extra = $this->composer->getPackage()->getExtra();
+        $extra = $this->getRootPackageExtra();
         $extra += array(
             'drupal-custom' => array(),
             'drupal-root' => 'core',
