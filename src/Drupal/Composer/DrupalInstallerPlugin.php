@@ -537,6 +537,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
                 $this->afterAllPatchesGitBranchCleanup($package);
             }
         }
+        if ($this->git['base-branch']) {
+          $this->executeCommand("git checkout %s", $this->git['base-branch']);
+        }
     }
 
     protected function verifyGitBranchExists($branch_name) {
