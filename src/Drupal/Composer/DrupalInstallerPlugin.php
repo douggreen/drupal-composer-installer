@@ -159,6 +159,11 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $this->io->write("DrupalInstallerPlugin::before::name=$packageName, type=$packageType");
         }
 
+        // Do not overwrite users changes.
+        if ($this->isGitDiff()) {
+          throw new \Exception(sprintf('There are uncommitted changes which will be removed. Please commit all uncommitted changes first.'));
+        }
+
         if ($packageType !== 'library') {
             if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
                 return;
