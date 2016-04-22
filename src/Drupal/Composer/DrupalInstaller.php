@@ -90,7 +90,7 @@ class DrupalInstaller extends LibraryInstaller {
         else {
             list($vendor, $name) = explode('/', $packageName);
 
-            $basePath = "$this->options['drupal-root']/$this->options['drupal-sites']/$this->options['drupal-site']";
+            $basePath = $this->options['drupal-root'] . '/' . $this->options['drupal-sites'] . '/' . $this->options['drupal-site'];
             $path = '';
             foreach (array('module' => 'drupal-modules', 'theme' => 'drupal-themes') as $type => $drupalType) {
                 if ($package->getType() === "drupal-$type") {
