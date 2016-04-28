@@ -778,17 +778,9 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
      *   was an error parsing the string.
      */
     protected function update_parse_xml($raw_xml) {
-        try {
-            $xml = new SimpleXMLElement($raw_xml);
-        }
-        catch (Exception $e) {
-            // SimpleXMLElement::__construct produces an E_WARNING error message for
-            // each error found in the XML data and throws an exception if errors
-            // were detected. Catch any exception and return failure (NULL).
-            return;
-        }
+        $xml = simplexml_load_string($raw_xml);
         // If there is no valid project data, the XML is invalid, so return failure.
-        if (!isset($xml->short_name)) {
+        if ($xml === FALSE || !isset($xml->short_name)) {
             return;
         }
         $short_name = (string) $xml->short_name;
