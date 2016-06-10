@@ -9,8 +9,6 @@ use Composer\Composer;
 
 class DrupalInstaller extends LibraryInstaller {
 
-    use DrupalInstallerMergePluginTrait;
-
     /**
      * @var array $cached
      */
@@ -40,7 +38,8 @@ class DrupalInstaller extends LibraryInstaller {
      *       with wikimedia/composer-merge-plugin.
      */
     protected function getOptions() {
-        $extra = $this->getRootPackageExtra();
+        $extra = $this->composer->getPackage()->getExtra();
+
         $extra += $this->defaultOptions;
 
         $options = array();
