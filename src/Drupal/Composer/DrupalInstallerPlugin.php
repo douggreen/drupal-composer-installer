@@ -7,6 +7,7 @@ use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\IO\IOInterface;
 use Composer\Package\PackageInterface;
 use Composer\Plugin\PluginInterface;
+use Composer\Plugin\PluginEvents;
 use Composer\Script\Event;
 use Composer\Script\PackageEvent;
 use Composer\Installer\PackageEvents;
@@ -56,13 +57,23 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
      */
     protected $patches;
 
+    /**
+     * {@inheritdoc}
+     */
     public function activate(Composer $composer, IOInterface $io) {
+        $this->composer = $composer;
         $this->io = $io;
+        $this->executor = new ProcessExecutor($io);
 
         $this->installer = new DrupalInstaller($io, $composer);
         $composer->getInstallationManager()->addInstaller($this->installer);
+    }
 
-        $extra = $composer->getPackage()->getExtra();
+    /**
+     * Initializes all plugin options.
+     */
+    public function init() {
+        $extra = $this->composer->getPackage()->getExtra();
         $extra += array(
             'drupal-custom' => array(),
             'drupal-root' => 'core',
@@ -80,9 +91,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $this->tmp = array();
         $this->info = array();
-
-        $this->composer = $composer;
-        $this->executor = new ProcessExecutor($io);
 
         $this->git = isset($extra['git']) ? $extra['git'] : array();
         $this->git += array(
@@ -115,7 +123,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $this->git['auto-remove'] = !empty($autoRemove);
         }
 
-        $this->io->write("  - activate DrupalInstallerPlugin");
+        $this->io->write("  - initialize DrupalInstallerPlugin");
 
         if ($this->io->isVeryVerbose()) {
           $this->io->write("    - <info>drupalRoot</info>=<info>$this->drupalRoot</info>");
@@ -140,6 +148,8 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
           array('afterAllPatches', -100),
         );
         return array(
+	    // Ensure we run after wikimedia-merge-plugin.
+            PluginEvents::INIT => array('init', -100),
             PackageEvents::PRE_PACKAGE_INSTALL => $before,
             PackageEvents::PRE_PACKAGE_UPDATE => $before,
             PackageEvents::POST_PACKAGE_INSTALL => $after,

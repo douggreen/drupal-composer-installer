@@ -8,6 +8,6 @@
     "class": "Drupal\\Composer\\DrupalInstallerPlugin"
   },
   "require": {
-    "composer-plugin-api": "~1.0"
+    "composer-plugin-api": "^1.1"
   }
 }
