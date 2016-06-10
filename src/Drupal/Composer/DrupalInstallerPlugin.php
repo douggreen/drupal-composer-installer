@@ -339,7 +339,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $this->io->write("  - Committing <info>$packageName</info> with version <info>$version</info> to GIT.");
         $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Update package ' . $packageName . ' to version ' . $version . '"; }', $packagePath);
-        $this->afterCommit($package);
     }
 
     protected function afterCommit(PackageInterface $package) {
@@ -502,10 +501,12 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
         $this->io->write('  - Committing patch <info>' . $url . '</info> <comment>' . $description . '</comment> for package <info>' . $packageName . '</info> to GIT.');
         $this->executeCommand('cd %s && git add --all . && { git diff --cached --quiet || git commit -m "' . $this->git['commit-prefix'] . 'Applied patch ' . $url . ' (' . $description . ') for ' . $packageName . '."; }', $packagePath);
-        $this->afterCommit($package);
+        // The branch will be pushed after all patches have been committed.
     }
 
     protected function afterAllPatchesGitBranchCleanup(PackageInterface $package) {
+        $this->afterCommit($package);
+
         $branchName = $this->getBranchName($package);
 
         if ($this->io->isVeryVerbose()) {
