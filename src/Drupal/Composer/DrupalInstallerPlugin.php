@@ -58,11 +58,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     protected $patches;
 
     /**
-     * @var bool $optionsInited
-     */
-    protected $optionsInited = FALSE;
-
-    /**
      * {@inheritdoc}
      */
     public function activate(Composer $composer, IOInterface $io) {
@@ -78,10 +73,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
      * Initializes all plugin options.
      */
     public function init() {
-        if ($this->optionsInited) {
-            return;
-        }
-
         $extra = $this->composer->getPackage()->getExtra();
         $extra += array(
             'drupal-custom' => array(),
@@ -148,8 +139,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $this->io->write("    - <info>drupalCustom[]</info>=<info>$customPath</info>");
           }
         }
-
-        $this->optionsInited = TRUE;
     }
 
     public static function getSubscribedEvents() {
