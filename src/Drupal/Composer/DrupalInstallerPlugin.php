@@ -9,7 +9,7 @@ use Composer\Package\PackageInterface;
 use Composer\Plugin\PluginInterface;
 use Composer\Plugin\PluginEvents;
 use Composer\Script\Event;
-use Composer\Script\PackageEvent;
+use Composer\Installer\PackageEvent;
 use Composer\Installer\PackageEvents;
 use Composer\Util\FileSystem;
 use Composer\Util\ProcessExecutor;
@@ -175,7 +175,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
 
         if ($packageType !== 'library') {
-            if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
+            if ($packageDrupal === 'composer' || $packageType === 'metapackage' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
                 return;
             }
 
@@ -308,7 +308,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
 
         if ($packageType !== 'library') {
-            if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
+            if ($packageDrupal === 'composer' || $packageType === 'metapackage' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
                 return;
             }
 
