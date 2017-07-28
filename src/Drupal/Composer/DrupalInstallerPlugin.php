@@ -9,7 +9,7 @@ use Composer\Package\PackageInterface;
 use Composer\Plugin\PluginInterface;
 use Composer\Plugin\PluginEvents;
 use Composer\Script\Event;
-use Composer\Script\PackageEvent;
+use Composer\Installer\PackageEvent;
 use Composer\Installer\PackageEvents;
 use Composer\Util\FileSystem;
 use Composer\Util\ProcessExecutor;
@@ -175,7 +175,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
 
         if ($packageType !== 'library') {
-            if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
+            if ($packageDrupal === 'composer' || $packageType === 'metapackage' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
                 return;
             }
 
@@ -308,7 +308,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         }
 
         if ($packageType !== 'library') {
-            if ($packageDrupal === 'composer' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
+            if ($packageDrupal === 'composer' || $packageType === 'metapackage' || ($packageDrupal !== 'drupal' && $vendor !== 'drupal')) {
                 return;
             }
 
@@ -505,8 +505,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     protected function afterAllPatchesGitBranchCleanup(PackageInterface $package) {
-        $this->afterCommit($package);
-
         $branchName = $this->getBranchName($package);
 
         if ($this->io->isVeryVerbose()) {
@@ -520,6 +518,10 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $this->verifyGitBranchExists($this->git['base-branch']);
 
         $isGitDiff = $this->isGitDiff($branchName);
+        if ($isGitDiff) {
+          $this->afterCommit($package);
+        }
+
         if ($isGitDiff && (!$this->git['security'] || substr($branchName, -3) === '-SA')) {
             if ($this->io->isVeryVerbose()) {
                 $this->io->write("  - Keeping branch <info>$branchName</info>, git.security=" . $this->git['security'] . ", sa=" .  substr($branchName, -3) . '.');
@@ -622,7 +624,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
                 }
                 else {
                     // Drupal contrib versions have three numbers, i.e. 7.x-1.7.
-                    $version = $matches[1] . '.x-' . $matches[2] . '.' . $matches[3];
+                    $version = '7.x-' . $matches[1] . '.' . $matches[2];
                 }
                 if (!empty($matches[4])) {
                     $version .= $matches[4];
