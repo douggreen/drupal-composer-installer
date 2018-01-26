@@ -127,6 +127,12 @@ class DrupalInstaller extends LibraryInstaller {
      * {@inheritDoc}
      */
     public function supports($packageType) {
-        return TRUE;
-    }
+        switch ($packageType) {
+          case 'metapackage':
+            return FALSE; // use default metapackage handling
+          default:
+            // @todo Actually check! We should really only be handling library-ish types!
+            return TRUE;
+       }
+   }
 }
