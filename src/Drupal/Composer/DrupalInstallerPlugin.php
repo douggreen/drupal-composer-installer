@@ -611,21 +611,44 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $packageName = $package->getName();
         list($vendor, $project) = explode('/', $packageName);
         if ($vendor === 'drupal') {
-            if (preg_match('/(\d+).(\d+).(\d+)(-[\w\d]+)?/', $version, $matches)) {
+            if (preg_match('/(?P<major>\d+)\.(?P<minor>\d+)(?:\.(?P<patch>\d+))?(?P<extra>-[\w\d]+)?/', $version, $matches)) {
                 if ($project === 'drupal') {
                     // Drupal core versions have two numbers, i.e. 7.38.
-                    $version = $matches[1] . '.' . $matches[2];
+                    $version = $matches['major'] . '.' . $matches['minor'];
                     // Drupal core's last last number should always be 0.
-                    if (!empty($matches[3])) {
-                        $version .= '.' . $matches[3];
+                    if (!empty($matches['patch'])) {
+                        $version .= '.' . $matches['patch'];
                     }
                 }
                 else {
-                    // Drupal contrib versions have three numbers, i.e. 7.x-1.7.
-                    $version = $matches[1] . '.x-' . $matches[2] . '.' . $matches[3];
+                    // Detect endpoint.
+                    $repo = $package->getRepository();
+                    if (method_exists($repo, 'getRepoConfig')) {
+                        $repo_config = $repo->getRepoConfig();
+                        if (isset($repo_config['url'])) {
+                            // Handle known repo formats
+                            $repourl = parse_url($repo_config['url']);
+                            if ($repourl['host'] == 'packages.drupal.org') {
+                                $core_version = substr($repourl['path'], 1);
+                                $version = $core_version . '.x-' . $matches['major'] . '.' . $matches['minor'];
+                                if (!empty($matches['patch'])) {
+                                    $version .= '.' . $matches['patch'];
+                                }
+                            }
+                            else {
+                                // Legacy behavior.
+                                $version = $matches['major'] . '.x-' . $matches['minor'] . '.' . $matches['patch'];
+                            }
+                        }
+                    }
+                    else {
+                        // Legacy behavior.
+                        // Drupal contrib versions have three numbers, i.e. 7.x-1.7.
+                        $version = $matches['major'] . '.x-' . $matches['minor'] . '.' . $matches['patch'];
+                    }
                 }
-                if (!empty($matches[4])) {
-                    $version .= $matches[4];
+                if (!empty($matches['extra'])) {
+                    $version .= $matches['extra'];
                 }
             }
         }
