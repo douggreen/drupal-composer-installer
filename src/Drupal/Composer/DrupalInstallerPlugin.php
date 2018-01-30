@@ -603,7 +603,25 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     protected function getPackageVersion(PackageInterface $package) {
         $version = $package->getPrettyVersion();
 
+        // Detect endpoint.
+        $platform = FALSE;
+        $repo = $package->getRepository();
+        if (method_exists($repo, 'getRepoConfig')) {
+            $repo_config = $repo->getRepoConfig();
+            if (isset($repo_config['url'])) {
+                // The new packages.drupal.org separates the platform from the version entirely.
+                $repourl = parse_url($repo_config['url']);
+                if ($repourl['host'] == 'packages.drupal.org') {
+                    $platform = substr($repourl['path'], 1);
+                }
+            }
+        }
+
+
         if (substr($version, 0, 4) === 'dev-') {
+            if ($platform) {
+                return $platform . '.x-' . substr($version, 4);
+            }
             return substr($version, 4);
         }
 
@@ -621,24 +639,11 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
                     }
                 }
                 else {
-                    // Detect endpoint.
                     $repo = $package->getRepository();
-                    if (method_exists($repo, 'getRepoConfig')) {
-                        $repo_config = $repo->getRepoConfig();
-                        if (isset($repo_config['url'])) {
-                            // Handle known repo formats
-                            $repourl = parse_url($repo_config['url']);
-                            if ($repourl['host'] == 'packages.drupal.org') {
-                                $core_version = substr($repourl['path'], 1);
-                                $version = $core_version . '.x-' . $matches['major'] . '.' . $matches['minor'];
-                                if (!empty($matches['patch'])) {
-                                    $version .= '.' . $matches['patch'];
-                                }
-                            }
-                            else {
-                                // Legacy behavior.
-                                $version = $matches['major'] . '.x-' . $matches['minor'] . '.' . $matches['patch'];
-                            }
+                    if ($platform) {
+                        $version = $platform . '.x-' . $matches['major'] . '.' . $matches['minor'];
+                        if (!empty($matches['patch'])) {
+                            $version .= '.' . $matches['patch'];
                         }
                     }
                     else {
