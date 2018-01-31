@@ -639,7 +639,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
                     }
                 }
                 else {
-                    $repo = $package->getRepository();
                     if ($platform) {
                         $version = $platform . '.x-' . $matches['major'] . '.' . $matches['minor'];
                         if (!empty($matches['patch'])) {
