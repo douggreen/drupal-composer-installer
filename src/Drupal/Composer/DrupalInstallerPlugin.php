@@ -58,6 +58,20 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     protected $patches;
 
     /**
+     * Webroot folder.
+     *
+     * @var string
+     */
+    protected $drupalRoot;
+
+    /**
+     * List of custom path that should be perserved over installs.
+     *
+     * @var string[]
+     */
+    protected $drupalCustom;
+
+    /**
      * {@inheritdoc}
      */
     public function activate(Composer $composer, IOInterface $io) {
@@ -76,7 +90,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $extra = $this->composer->getPackage()->getExtra();
         $extra += array(
             'drupal-custom' => array(),
-            'drupal-root' => 'core',
+            'drupal-root' => 'web',
             'patches' => array(),
         );
 
@@ -262,7 +276,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             if (is_dir($filePath)) {
                 $this->readDirVersionInfo($packageName, $filePath);
             }
-            elseif (substr($partialPath, -5) === '.info') {
+            elseif (substr($partialPath, -9) === '.info.yml') {
                 $this->info[$packageName][$filePath] = $this->getFileDrupalInfo($filePath);
             }
         }
@@ -273,7 +287,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $contents = @file($filePath);
         if ($contents) {
             foreach ($contents as $line) {
-              if (preg_match('/^\s*(\w+)\s*=\s*"?([^"\n]*)"?/', $line, $matches)) {
+              if (preg_match('/^\s*(\w+)\s*:\s*"?([^"\n]*)"?/', $line, $matches)) {
                   $key = $matches[1];
                   $value = $matches[2];
                   $info[$key] = $value;
@@ -288,7 +302,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
     protected function getFileVersionInfo($filePath) {
         $contents = @file_get_contents($filePath);
-        $regex = '/\s+version\s*=\s*"?([^"\s]*)"?/';
+        $regex = '/\s+version\s*:\s*"?([^"\s]*)"?/';
         if ($contents && preg_match_all($regex, $contents, $matches)) {
             $version = end($matches[1]);
             return $this->normalizeVersion($version);
@@ -399,7 +413,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             if (is_dir($filePath)) {
                 $this->rewriteDirInfo($packageName, $filePath, $info);
             }
-            elseif (substr($partialPath, -5) === '.info') {
+            elseif (substr($partialPath, -9) === '.info.yml') {
                 $this->rewriteFileInfo($packageName, $filePath, $info);
             }
         }
@@ -416,13 +430,13 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             $this->io->write("  - Rewriting <info>$filePath</info> with version <info>$info[version]</info>");
 
             $moreInfo = "\n"
-                . "; Information added by drupal-composer-installer packaging script on $info[date]\n"
-                . "version = \"$info[version]\"\n";
+                . "# Information added by drupal-composer-installer packaging script on $info[date]\n"
+                . "version: \"$info[version]\"\n";
             if (isset($info['project'])) {
-                $moreInfo .= "project = \"$info[project]\"\n";
+                $moreInfo .= "project: \"$info[project]\"\n";
               }
             if (isset($info['datestamp'])) {
-                $moreInfo .= "datestamp = \"$info[datestamp]\"\n";
+                $moreInfo .= "datestamp: \"$info[datestamp]\"\n";
               }
             file_put_contents($filePath, $moreInfo, FILE_APPEND);
         }

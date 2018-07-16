@@ -26,8 +26,8 @@ class DrupalInstaller extends LibraryInstaller {
         'drupal-libraries' => array(),
         'drupal-modules' => array(),
         'drupal-themes' => array(),
-        'drupal-root' => 'core',
-        'drupal-sites' => 'sites',
+        'drupal-root' => 'web',
+        'drupal-sites' => '',
         'drupal-site' => 'all',
     );
 
@@ -86,10 +86,22 @@ class DrupalInstaller extends LibraryInstaller {
         if ($packageName === 'drupal/drupal') {
             $path = $this->options['drupal-root'];
         }
+        elseif ($packageName === 'drupal/core') {
+            $path = $this->options['drupal-root'] . '/core';
+            if (!is_dir($path)) {
+                mkdir($path);
+            }
+        }
         else {
             list($vendor, $name) = explode('/', $packageName);
 
-            $basePath = $this->options['drupal-root'] . '/' . $this->options['drupal-sites'] . '/' . $this->options['drupal-site'];
+            if (empty($this->options['drupal-sites'])) {
+                $basePath = $this->options['drupal-root'];
+            }
+            else {
+                $basePath = $this->options['drupal-root'] . '/' . $this->options['drupal-sites'] . '/' . $this->options['drupal-site'];
+            }
+
             $path = '';
             foreach (array('module' => 'drupal-modules', 'theme' => 'drupal-themes') as $type => $drupalType) {
                 if ($package->getType() === "drupal-$type") {

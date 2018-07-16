@@ -4,9 +4,9 @@ Drupal composer installer plugin
 
 * Installs Drupal core into drupal-root.
 * Installs Drupal modules, themes, and libraries into the sites or profile directory.
-* For example, installs Drupal modules into {drupal-root}/sites/all/modules/{dir}.
-* For example, installs Drupal themes into {drupal-root}/sites/all/themes/{dir}.
-* For example, installs libraries into {drupal-root}/sites/all/libraries.
+* For example, installs Drupal modules into {drupal-root}/modules/{dir}.
+* For example, installs Drupal themes into {drupal-root}/themes/{dir}.
+* For example, installs libraries into {drupal-root}/libraries.
 * Saves and restores custom code around drupal/drupal installation.
 
 ## Usage
@@ -25,13 +25,13 @@ To use this installer in your project build, in your composer.json add
   }
 ```
 
-You'll also want to add a packageist as follows (that is, until drupal.org implements it's own):
+You'll also want to add the Drupal packages repository as follows:
 
 ```
   "repositories": [
     {
       "type": "composer",
-      "url": "https://packagist.drupal-composer.org/"
+      "url": "https://packages.drupal.org/8"
     }
   ]
 ```
@@ -44,7 +44,7 @@ Your somewhat complete composer.json might look like:
   "repositories": [
     {
       "type": "composer",
-      "url": "https://packagist.drupal-composer.org/"
+      "url": "https://packages.drupal.org/8"
     },
     {
       "type": "git",
@@ -64,7 +64,7 @@ Your somewhat complete composer.json might look like:
 
 ## Options
 
-### drupal-root - the directory to install drupal into, defaults to 'core'
+### drupal-root - the directory to install drupal into, defaults to 'web'
 
 ```
   "extra": {
@@ -72,7 +72,7 @@ Your somewhat complete composer.json might look like:
   }
 ```
 
-### drupal-site - the directory under 'sites', defaults to 'all'.
+### drupal-site - the directory under 'sites', only used if 'drupal-sites' is set, defaults to 'all'.
 
 ```
   "extra": {
@@ -82,7 +82,7 @@ Your somewhat complete composer.json might look like:
 
 When set, changes the install from sites/all to sites/mysite.
 
-### drupal-sites - the directory under drupal-root, defaults to 'sites'.
+### drupal-sites - the directory under drupal-root, empty by default (installs into global modules/ and themes/ folders).
 
 When installing a profile, set this to 'profiles'.
 
@@ -93,9 +93,9 @@ When installing a profile, set this to 'profiles'.
   }
 ```
 
-### drupal-libraries - map of packages to install into {drupal-root}/sites/all/libraries.
+### drupal-libraries - map of packages to install into {drupal-root}/libraries.
 
-The package is the key name. Any value specifies a directory name under sites/all/libraries.
+The package is the key name. Any value specifies a directory name under libraries/.
 
 ```
   "extra": {
@@ -110,8 +110,8 @@ The value ```ckeditor/ckeditor``` is implied by default.
 
 ### drupal-modules - map of packages to directories.
 
-* drupal/* : contrib, by default all drupal modules are installed in {drupal-root}/sites/all/modules/contrib
-or {drupal-root}/sites/all/modules/project. Additional directories can be specified.
+* drupal/* : contrib, by default all drupal modules are installed in {drupal-root}/modules/contrib
+or {drupal-root}/modules/project. Additional directories can be specified.
 
 ```
   "extra": {
@@ -131,7 +131,7 @@ This is array of custom code paths that should be saved before drupal/drupal is 
 ```
   "extra": {
     "drupal-custom": [
-      "core/sites/all/themes/mytheme"
+      "core/themes/mytheme"
     ]
   }
 ```
