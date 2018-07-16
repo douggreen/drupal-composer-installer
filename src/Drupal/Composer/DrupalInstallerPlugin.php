@@ -407,7 +407,8 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
 
     protected function rewriteFileInfo($packageName, $filePath, $info) {
         $version = $this->getFileVersionInfo($filePath);
-        if (!$version) {
+        $old_info = $this->getFileDrupalInfo($filePath);
+        if (!$version || (isset($info['project']) && !isset($old_info['project'])) || (isset($info['datestamp']) && !isset($old_info['datestamp']))) {
             if (strpos($info['version'], 'dev') === FALSE && isset($this->info[$packageName][$filePath]['version']) && $this->info[$packageName][$filePath]['version'] === $info['version']) {
                 $info = $this->info[$packageName][$filePath] + $info;
             }
