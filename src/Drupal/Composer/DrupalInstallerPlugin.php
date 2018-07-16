@@ -506,8 +506,6 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
     }
 
     protected function afterAllPatchesGitBranchCleanup(PackageInterface $package) {
-        $this->afterCommit($package);
-
         $branchName = $this->getBranchName($package);
 
         if ($this->io->isVeryVerbose()) {
@@ -521,6 +519,10 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
         $this->verifyGitBranchExists($this->git['base-branch']);
 
         $isGitDiff = $this->isGitDiff($branchName);
+        if ($isGitDiff) {
+          $this->afterCommit($package);
+        }
+
         if ($isGitDiff && (!$this->git['security'] || substr($branchName, -3) === '-SA')) {
             if ($this->io->isVeryVerbose()) {
                 $this->io->write("  - Keeping branch <info>$branchName</info>, git.security=" . $this->git['security'] . ", sa=" .  substr($branchName, -3) . '.');
