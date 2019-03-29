@@ -614,7 +614,7 @@ class DrupalInstallerPlugin implements PluginInterface, EventSubscriberInterface
             if (isset($repo_config['url'])) {
                 // The new packages.drupal.org separates the platform from the version entirely.
                 $repourl = parse_url($repo_config['url']);
-                if ($repourl['host'] == 'packages.drupal.org') {
+                if (isset($repourl['host']) && $repourl['host'] == 'packages.drupal.org') {
                     $platform = substr($repourl['path'], 1);
                 }
             }
